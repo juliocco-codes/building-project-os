@@ -1,0 +1,23 @@
+{
+  "id": "TRIP-07",
+  "revision": 2,
+  "outcome": "Compare three Paris hotel options and recommend the best fit for a fictional weekend trip.",
+  "state": "ready",
+  "nextActor": "agent",
+  "automationLevel": "partial",
+  "inScope": [
+    "Check current flexible rates",
+    "Compare location, cancellation terms, and total cost",
+    "Return a sourced recommendation"
+  ],
+  "outOfScope": [
+    "Make a reservation",
+    "Contact a hotel",
+    "Use payment details"
+  ],
+  "authority": {
+    "allowed": ["read", "research", "draft"],
+    "requiresReview": ["book", "send", "purchase"]
+  },
+  "success": "A current comparison, recommendation, sources, and explicit statement of what was not done are attached to the task."
+}
