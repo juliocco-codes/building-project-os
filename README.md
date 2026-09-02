@@ -1,8 +1,19 @@
 # Building Project OS
 
-Project OS is a personal work-dispatch system. It turns an informal intention into a scoped task, records what an agent may and may not do, routes the work to the next actor, and stops at a reviewable handoff whenever human judgment is needed.
+Project OS is a personal work-dispatch system. It turns an informal intention into a scoped task, gives an agent the context and authority it needs, and brings the work back when human judgment is genuinely required.
 
-It is the system described in [Putting life on autopilot](https://juliocothon.com/essays/putting-life-on-autopilot). This repository is a sanitised, provider-neutral reference implementation. It does not contain my real task board, personal wiki, messages, filesystem, automation credentials, or private operating rules.
+The aim is to get more from personal AI without becoming the routing layer between every tool and agent. Instead of choosing a system, reconstructing context, and supervising each step, the user has one place to describe an outcome and one queue of decisions that need attention.
+
+It is the system described in [Putting life on autopilot](https://juliocothon.com/essays/putting-life-on-autopilot).
+
+## What this changes for the individual
+
+- One conversation can become a properly scoped unit of work.
+- Several tasks can progress without the user manually starting and routing every step.
+- Personal context can be reused without being reconstructed for every tool.
+- Research, comparisons, and drafts can return as useful first versions rather than open-ended agent activity.
+- Purchases, messages, bookings, credentials, and physical actions can come back as explicit decisions.
+- The user can see what is ready, active, waiting for review, or complete in one place.
 
 ## The core design
 
@@ -87,15 +98,6 @@ Scheduled checks must not create a new agent run every time they inspect the boa
 - `examples/task.json`: a fictional partially automatable task.
 - `examples/review-handoff.md`: the expected review format.
 - `SECURITY.md`: privacy and automation-safety checklist.
-
-## What is deliberately not included
-
-- a real personal wiki or filesystem layout;
-- names, addresses, travel plans, health data, contacts, or task history;
-- credentials, tokens, cookies, webhooks, or authenticated browser state;
-- production dispatcher configuration;
-- private approval-service code or endpoints;
-- completed issues or screenshots from a real workspace.
 
 ## License
 
