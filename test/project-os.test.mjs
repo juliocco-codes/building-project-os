@@ -1,6 +1,17 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { beginWork, claimKey, createReviewHandoff, dispatchDecision, validateTask } from "../src/project-os.mjs";
+import {
+  beginWork,
+  claimKey,
+  confirmInitialHandoff,
+  contractFingerprint,
+  createReviewHandoff,
+  dispatchDecision,
+  dispatchRecordKey,
+  effectiveContractText,
+  shouldSendDispatch,
+  validateTask,
+} from "../src/project-os.mjs";
 
 const task = {
   id: "TASK-12",
@@ -13,6 +24,7 @@ const task = {
   outOfScope: ["Make a booking", "Contact a provider"],
   authority: { allowed: ["read", "research", "draft"], requiresReview: ["book", "send"] },
   success: "A sourced comparison and recommendation are attached to the task.",
+  initialHandoff: { taskId: "TASK-12", revision: 3, state: "accepted" },
 };
 
 test("a valid ready task can be dispatched once", () => {
@@ -42,4 +54,30 @@ test("work returns an explicit human handoff", () => {
   });
   assert.equal(result.task.state, "in_review");
   assert.equal(result.task.nextActor, "human");
+});
+
+test("contract fingerprints ignore line endings and trailing whitespace", () => {
+  const unix = contractFingerprint("Outcome\nScope", ["Add criterion A"]);
+  const windows = contractFingerprint("\nOutcome  \r\nScope\t\r\n", ["Add criterion A\r\n"]);
+  assert.equal(unix, windows);
+  assert.equal(effectiveContractText("A", ["B"]), "A\n\n--- accepted-amendment ---\n\nB");
+});
+
+test("ready work does not advance until its handoff is accepted", () => {
+  const pending = { ...task.initialHandoff, state: "pending" };
+  assert.equal(confirmInitialHandoff(task, pending).reason, "handoff_pending");
+  assert.throws(() => beginWork(task, pending), /handoff_pending/);
+
+  assert.equal(beginWork(task, task.initialHandoff).state, "in_progress");
+});
+
+test("dispatch records retry pending and failed work but never sent work", () => {
+  assert.equal(shouldSendDispatch(undefined), true);
+  assert.equal(shouldSendDispatch({ state: "pending" }), true);
+  assert.equal(shouldSendDispatch({ state: "failed" }), true);
+  assert.equal(shouldSendDispatch({ state: "sent" }), false);
+  assert.equal(
+    dispatchRecordKey({ taskId: task.id, revision: task.revision, kind: "review", cycle: 2, fingerprint: "sha256:abc" }),
+    "review:TASK-12@3:2:sha256:abc",
+  );
 });
