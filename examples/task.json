@@ -19,5 +19,10 @@
     "allowed": ["read", "research", "draft"],
     "requiresReview": ["book", "send", "purchase"]
   },
-  "success": "A current comparison, recommendation, sources, and explicit statement of what was not done are attached to the task."
+  "success": "A current comparison, recommendation, sources, and explicit statement of what was not done are attached to the task.",
+  "initialHandoff": {
+    "taskId": "TRIP-07",
+    "revision": 2,
+    "state": "accepted"
+  }
 }
