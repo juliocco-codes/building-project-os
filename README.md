@@ -24,7 +24,7 @@ Project OS separates four things that are easy to blur together:
 3. **State:** whether the task is ready, planned, in progress, in review, completed, or blocked.
 4. **Actor:** whether the next meaningful action belongs to the agent or the person.
 
-The task board is the state machine, not the agent's memory. A scheduled dispatcher may pick up work only when the task is explicitly ready, assigned to the agent, and sufficiently scoped.
+The task board is the state machine, not the agent's memory. A scheduled dispatcher may pick up work only when the task is explicitly ready, assigned to the agent, sufficiently scoped, and delivered through a handoff the execution environment has actually accepted.
 
 ## Start here
 
@@ -85,7 +85,40 @@ Partially automatable work should stop at a crisp decision. A good handoff says 
 
 ### Idempotent dispatch
 
-Scheduled checks must not create a new agent run every time they inspect the board. Claim a stable task-and-revision pair, release failed claims for retry, and mark the claim complete only after the handoff is recorded.
+Scheduled checks must not create a new agent run every time they inspect the board. Give every initial dispatch, review, and correction a stable key containing the task, revision, cycle, and contract fingerprint. Write `pending` before sending, retry only `pending` or `failed`, and never resend a record already marked `sent` or `accepted`.
+
+### Ready is authorisation, not proof of delivery
+
+Moving a task to `ready` records that the contract was approved. It does not prove that a worker received it or that the execution environment accepted its authority. Keep an explicit initial-handoff record with `pending`, `sent`, `accepted`, or `failed` state. Move the task to `in_progress` only after acceptance is confirmed. If the handoff cannot be established, make that a visible blocker instead of reporting an empty successful run.
+
+This distinction prevents two common bugs: work that looks active but was never started, and a scheduler treating tracker text as if it independently granted permission to act.
+
+### Fingerprint the effective contract
+
+Retries and amendments need a deterministic way to decide whether they still refer to the same work. Fingerprint the frozen baseline plus accepted amendments, not ordinary comments or lifecycle metadata. Normalize line endings, remove trailing whitespace on each line, trim surrounding blank lines, join amendments with a fixed separator, and hash the resulting UTF-8 text. A material scope or authority change produces a new fingerprint and therefore requires a new handoff.
+
+### Separate orchestration, work, and review
+
+The scheduler's control task should only inventory, correlate, and route work. Each task gets a persistent worker, and independent review gets a different persistent reviewer. Corrections return to the same worker; later review cycles return to the same reviewer. Reusing the control task as a worker or reviewer mixes authority, context, and audit records and can strand later work in the wrong conversation.
+
+### Reconcile the whole queue
+
+A dispatcher is a reconciler, not an activity-feed consumer. Every run should paginate the complete actionable population, then compare desired state with recorded state. Updated-time deltas can permanently miss a task after a transient failure. Stay quiet only when the full inventory proves that there is no action, failure, or unresolved handoff.
+
+### Pair transitions with confirmed side effects
+
+Do not move a task to `in_progress` and hope task creation succeeds. Confirm the dispatch, then pair that evidence with the state transition. The same rule applies to review, correction, and completion. Compensating rollbacks are useful recovery tools, but they should not be the normal control flow.
+
+## Failure modes worth testing
+
+- A `ready` task has an approved contract but no accepted worker handoff.
+- A send times out after the `pending` record is written and the next heartbeat retries it.
+- A `sent` review or correction is seen again on a later heartbeat and is not duplicated.
+- A line-ending-only edit leaves the contract fingerprint unchanged.
+- An accepted amendment changes the fingerprint and invalidates the old handoff.
+- The control task, worker, and reviewer are accidentally given the same identifier.
+- A task falls outside an updated-time window after a transient API failure but is recovered by full reconciliation.
+- Two correction cycles reveal the same invariant failure and trigger a root-cause review rather than another local patch.
 
 ## Repository map
 
