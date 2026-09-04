@@ -34,7 +34,7 @@ The task board is the state machine, not the agent's memory. A scheduled dispatc
 4. Begin with read-only or draft-only tasks. Do not begin with purchases, messages, bookings, or destructive actions.
 5. Use the included validator before dispatching a task.
 6. Run the dispatcher manually until its state transitions are predictable.
-7. Add a scheduled heartbeat only after duplicate prevention and review handoffs work reliably.
+7. Add an operating-system-managed detached reconciler only after duplicate prevention and review handoffs work reliably. Do not host unattended writers or monitors in a visible conversation.
 
 ```bash
 npm test
@@ -101,6 +101,51 @@ Retries and amendments need a deterministic way to decide whether they still ref
 
 The scheduler's control task should only inventory, correlate, and route work. Each task gets a persistent worker, and independent review gets a different persistent reviewer. Corrections return to the same worker; later review cycles return to the same reviewer. Reusing the control task as a worker or reviewer mixes authority, context, and audit records and can strand later work in the wrong conversation.
 
+### Separate the four runtime planes
+
+Keep these responsibilities independent even when one application implements several of them:
+
+1. **Orchestration** is a detached, operating-system-managed reconciler. It inventories desired state, compares it with durable receipts, and schedules bounded work. It does not borrow the foreground or write lifecycle prose itself.
+2. **Execution** happens in private worker and independent-review sessions. These sessions are durable across corrections but never compete for user attention.
+3. **Publication** owns exactly one canonical user-facing task per tracked issue. Its stable identity is derived from the issue identity, its title exactly matches the tracker title, and it is reused for every lifecycle update.
+4. **Delivery** sends an approved result through an external channel. Delivery success does not create, hide, bump, or replace the canonical task, and task visibility does not imply delivery.
+
+This separation makes foreground safety a property of the architecture rather than a convention. Updating issue B must not navigate away from, focus, or otherwise alter the user's foreground issue A.
+
+### Treat attention as an explicit side effect
+
+Ordinary progress, successful delivery, and healthy scheduled reconciliation are quiet. Only an actionable human-owned blocker, a review request, or a genuine delivery failure should surface. Record a stable escalation key so the same condition surfaces once. Completion remains discoverable on the canonical task without synthetic messages, recency bumps, or notifications.
+
+### Checkpoint publication before performing it
+
+For each lifecycle publication, derive a stable key from the task, effective-contract fingerprint, lifecycle, cycle, submitted head, and intended turn. Persist a `prepared` receipt containing both the canonical task identity and intended turn identity before calling an external system. Refuse to start the side effect if either identity is missing.
+
+After interruption, query exact evidence:
+
+- if the exact canonical task and turn exist, confirm the receipt without sending;
+- if exact evidence proves the turn absent, publish once using the same identity and key;
+- if the result is indeterminate or mismatched, stop with one precise blocker.
+
+Never blindly retry a timed-out publication. "Probably absent" is not evidence of absence.
+
+### Bound work and isolate failures
+
+Give each work item a durable lease with an owner, expiry, and monotonically increasing generation. A stale lease may be replaced after expiry, but its old owner cannot release the replacement. Bound each execution attempt by time or work budget, and catch failures per item so one broken issue cannot stop full-queue reconciliation.
+
+A separate detached supervisor checks reconciler health. It emits one escalation per stable failure key, suppresses repeats while the condition persists, and silently rearms after recovery.
+
+### Guard automatic source integration
+
+Automation classification never grants authority. Automatic merge is eligible only when all of these are true:
+
+- the task is Fully automatable and its frozen contract explicitly grants merge authority;
+- an independent reviewer approved the exact task, effective contract, cycle, and submitted head;
+- every required check passed;
+- the submitted head is unchanged and the target branch still equals its recorded expected head;
+- no conflict exists and branch protection accepts the operation.
+
+The merge key binds the task, effective contract, cycle, submitted head, review result, merge target, and expected target head. After merging, verify that the intended head reached the intended base before marking work complete. Status, labels, pull-request state, reviewer prose, or the automation classification alone are never authority. Missing evidence, ambiguity, drift, conflict, failed or pending checks, or protection refusal stops with one precise blocker. Partially automatable work always stops for human approval.
+
 ### Reconcile the whole queue
 
 A dispatcher is a reconciler, not an activity-feed consumer. Every run should paginate the complete actionable population, then compare desired state with recorded state. Updated-time deltas can permanently miss a task after a transient failure. Stay quiet only when the full inventory proves that there is no action, failure, or unresolved handoff.
@@ -119,6 +164,11 @@ Do not move a task to `in_progress` and hope task creation succeeds. Confirm the
 - The control task, worker, and reviewer are accidentally given the same identifier.
 - A task falls outside an updated-time window after a transient API failure but is recovered by full reconciliation.
 - Two correction cycles reveal the same invariant failure and trigger a root-cause review rather than another local patch.
+- A publication call times out and exact evidence cannot establish whether its turn was created.
+- A stale lease holder attempts to release a replacement lease.
+- External delivery succeeds while the canonical task remains unchanged and discoverable.
+- A repeated dispatcher failure is escalated once, then rearms after recovery.
+- An approval names an older source head or the target branch drifts before merge.
 
 ## Repository map
 
