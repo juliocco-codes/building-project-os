@@ -116,6 +116,13 @@ This separation makes foreground safety a property of the architecture rather th
 
 Ordinary progress, successful delivery, and healthy scheduled reconciliation are quiet. Only an actionable human-owned blocker, a review request, or a genuine delivery failure should surface. Record a stable escalation key so the same condition surfaces once. Completion remains discoverable on the canonical task without synthetic messages, recency bumps, or notifications.
 
+Recovery observers follow the same rule. A slow tool call or a missing view is
+not proof of a pending approval. Discovery may collect diagnostics, but must not
+open a task automatically. Only a verified request from its owner may produce an
+approval alert; navigating to a task requires a deliberate user action. A
+background-launch flag does not guarantee that the receiving application will
+preserve its selected task.
+
 ### Checkpoint publication before performing it
 
 For each lifecycle publication, derive a stable key from the task, effective-contract fingerprint, lifecycle, cycle, submitted head, and intended turn. Persist a `prepared` receipt containing both the canonical task identity and intended turn identity before calling an external system. Refuse to start the side effect if either identity is missing.
@@ -127,6 +134,12 @@ After interruption, query exact evidence:
 - if the result is indeterminate or mismatched, stop with one precise blocker.
 
 Never blindly retry a timed-out publication. "Probably absent" is not evidence of absence.
+
+If the canonical task has an active writer, defer delivery and retain the same
+publication receipt and incident identity. Retry when available only if evidence
+proves that publication did not start. A busy task must not cause an interruption,
+a competing task, or a fresh incident. Unknown outcomes still require reconciliation.
+If health recovers before an alert is delivered, cancel the obsolete alert.
 
 ### Bound work and isolate failures
 
@@ -169,6 +182,17 @@ Do not move a task to `in_progress` and hope task creation succeeds. Confirm the
 - External delivery succeeds while the canonical task remains unchanged and discoverable.
 - A repeated dispatcher failure is escalated once, then rearms after recovery.
 - An approval names an older source head or the target branch drifts before merge.
+- A recovery observer repeatedly sees a long-running tool or private subagent and never navigates or sends a speculative approval alert.
+- A supervisor encounters a busy canonical task, retains one pending incident, and publishes once after the writer finishes.
+- Health recovers while an alert is deferred, making delivery unnecessary.
+
+Validate the whole installed system with auxiliary approval and recovery services
+enabled, including duplicate-service detection. Exercise ordinary tools, private
+subagents, genuine approval interactions, and explicit user navigation while a
+different application is foreground. Record application activation separately
+from task selection. Task-switch logs alone cannot distinguish user clicks from
+unsolicited navigation. The deterministic tests here validate decisions; they do
+not certify a host application's focus behavior or substitute for a live approval test.
 
 ## Repository map
 

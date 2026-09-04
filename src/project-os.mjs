@@ -154,17 +154,24 @@ export function beginPublication(input) {
   };
 }
 
-export function reconcilePublication(receipt, evidence) {
+export function reconcilePublication(receipt, evidence, { writerBusy = false } = {}) {
   requireFields(receipt, ["key", "state", "canonicalTaskId", "turnId"], "Publication receipt");
   if (!publicationEvidenceStates.has(evidence?.state)) throw new Error("Publication evidence state is invalid.");
   if (evidence.state === "indeterminate") return { action: "stop", state: "ambiguous", reason: "indeterminate_publication" };
+  if (evidence.canonicalTaskId !== receipt.canonicalTaskId || evidence.turnId !== receipt.turnId) {
+    return { action: "stop", state: "ambiguous", reason: "evidence_mismatch" };
+  }
   if (evidence.state === "present") {
-    if (evidence.canonicalTaskId !== receipt.canonicalTaskId || evidence.turnId !== receipt.turnId) {
-      return { action: "stop", state: "ambiguous", reason: "evidence_mismatch" };
-    }
     return { action: "none", state: "confirmed", reason: "exact_evidence" };
   }
+  if (writerBusy) return { action: "defer", state: "prepared", reason: "active_writer" };
   return { action: "publish", state: "prepared", reason: "confirmed_absent" };
+}
+
+// Callers derive these facts from a user action or a verified owner request,
+// never from tool duration, missing views, or recovery heuristics.
+export function recoveryAttentionDecision({ userRequestedOpen = false, verifiedApproval = false } = {}) {
+  return { navigate: userRequestedOpen === true, notify: verifiedApproval === true };
 }
 
 export function deliveryReceiptKey({ taskId, fingerprint, lifecycle, cycle, submittedHead = "none", reviewResult = "not_applicable", channel }) {

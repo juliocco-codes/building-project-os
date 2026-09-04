@@ -141,7 +141,9 @@ test("crash recovery uses exact evidence and fails closed when ambiguous", () =>
   assert.throws(() => beginPublication({ ...runtimeInput, turnId: undefined }), /turnId/);
   const prepared = beginPublication(runtimeInput);
   assert.equal(prepared.state, "prepared");
-  assert.equal(reconcilePublication(prepared, { state: "absent" }).action, "publish");
+  assert.equal(reconcilePublication(prepared, { state: "absent", canonicalTaskId: prepared.canonicalTaskId, turnId: prepared.turnId }).action, "publish");
+  assert.equal(reconcilePublication(prepared, { state: "absent" }).action, "stop");
+  assert.equal(reconcilePublication(prepared, { state: "absent", canonicalTaskId: prepared.canonicalTaskId, turnId: "wrong" }).action, "stop");
   assert.equal(reconcilePublication(prepared, {
     state: "present",
     canonicalTaskId: prepared.canonicalTaskId,
