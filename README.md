@@ -34,7 +34,16 @@ The task board is the state machine, not the agent's memory. A scheduled dispatc
 4. Begin with read-only or draft-only tasks. Do not begin with purchases, messages, bookings, or destructive actions.
 5. Use the included validator before dispatching a task.
 6. Run the dispatcher manually until its state transitions are predictable.
-7. Add a scheduled heartbeat only after duplicate prevention and review handoffs work reliably.
+7. Add an OS-managed scheduler only after duplicate prevention and review handoffs work reliably. Keep background execution independent of a visible conversation.
+
+This is a sanitized reference implementation, not a deployed task service. The
+code demonstrates contract validation, dispatch eligibility, fingerprints, and
+human review handoffs. [SYSTEM.md](SYSTEM.md) explains the production architecture
+lessons and the adapters that a real deployment still needs.
+
+The repository is intentionally standalone and public. Do not use it as a remote
+or branch for a private operational system; contribute only rewritten, generic
+material from this repository's own clean history after disclosure review.
 
 ```bash
 npm test
@@ -85,7 +94,7 @@ Partially automatable work should stop at a crisp decision. A good handoff says 
 
 ### Idempotent dispatch
 
-Scheduled checks must not create a new agent run every time they inspect the board. Give every initial dispatch, review, and correction a stable key containing the task, revision, cycle, and contract fingerprint. Write `pending` before sending, retry only `pending` or `failed`, and never resend a record already marked `sent` or `accepted`.
+Scheduled checks must not create a new agent run every time they inspect the board. Give every initial dispatch, review, and correction a stable key containing the task, revision, cycle, and contract fingerprint. Write `pending` before sending, and never resend a record already marked `sent` or `accepted`. Before retrying a `pending` or `failed` record, the transport must establish that the earlier attempt did not start. A timeout after a possible send is uncertain and needs read-only reconciliation; the small retry helper does not establish that evidence itself.
 
 ### Ready is authorisation, not proof of delivery
 
@@ -99,7 +108,34 @@ Retries and amendments need a deterministic way to decide whether they still ref
 
 ### Separate orchestration, work, and review
 
-The scheduler's control task should only inventory, correlate, and route work. Each task gets a persistent worker, and independent review gets a different persistent reviewer. Corrections return to the same worker; later review cycles return to the same reviewer. Reusing the control task as a worker or reviewer mixes authority, context, and audit records and can strand later work in the wrong conversation.
+The scheduler should inventory, correlate, and route work in a headless process. Each issue has one canonical user-facing conversation, a persistent private worker, and a different private reviewer. Corrections return to the same worker; later review cycles return to the same reviewer. The visible conversation holds decisions and results rather than long-running background execution. Reusing it as the worker can couple background activity to the application's foreground selection.
+
+### Visibility is separate from attention
+
+Publishing a result must not select, focus, navigate, or pin its conversation. Keep
+publication brief and bounded. If another process owns the conversation's writer,
+record deferred publication and retry only when ownership is available. Do not
+delete its lock or equate an idle turn with released ownership. Desktop visibility,
+mobile discoverability, restart persistence, and native notifications require
+separate evidence.
+
+### Quiet success, actionable exceptions
+
+Routine progress should not compete for attention. Surface blockers and reviews
+requiring the user, and retain completion without an additional alert. A workflow
+whose deliverable goes to another channel should stay quiet after trusted delivery
+evidence; missing or ambiguous delivery remains an exception. Some workflows may
+explicitly retain both a visible result and external delivery. Delivery channels
+such as Telegram do not automatically become task-lifecycle notification channels.
+
+### Review can authorize bounded integration
+
+Fully automatable work may integrate automatically when its accepted contract
+explicitly authorizes that effect. Require an independent approval of the exact
+submitted commit and successful required checks, verify the current head and base,
+and make the merge idempotent. Drift, conflicts, failed checks, or missing authority
+must produce a precise blocker. A successful merge is distinct from deployment.
+This repository describes that boundary; it does not implement a GitHub integrator.
 
 ### Reconcile the whole queue
 
@@ -112,16 +148,23 @@ Do not move a task to `in_progress` and hope task creation succeeds. Confirm the
 ## Failure modes worth testing
 
 - A `ready` task has an approved contract but no accepted worker handoff.
-- A send times out after the `pending` record is written and the next heartbeat retries it.
+- A send times out after the `pending` record is written; reconciliation determines whether it started before any retry.
 - A `sent` review or correction is seen again on a later heartbeat and is not duplicated.
 - A line-ending-only edit leaves the contract fingerprint unchanged.
 - An accepted amendment changes the fingerprint and invalidates the old handoff.
 - The control task, worker, and reviewer are accidentally given the same identifier.
 - A task falls outside an updated-time window after a transient API failure but is recovered by full reconciliation.
 - Two correction cycles reveal the same invariant failure and trigger a root-cause review rather than another local patch.
+- Background worker, reviewer, and publication activity leave another application foreground.
+- A busy canonical writer defers one publication without duplicate conversations or messages.
+- A visible result remains discoverable after desktop and mobile restarts.
+- An integration head changes after approval, or a provider response is uncertain.
+- A healthy service reports no progress while authorized work is stranded.
 
 ## Repository map
 
+- `AGENTS.md`: contributor instructions for this sanitized repository.
+- `SYSTEM.md`: architecture lessons, implementation boundaries, and production acceptance requirements.
 - `workspace/AGENTS.md`: operating rules and authority boundaries.
 - `workspace/USER.example.md`: fictional defaults to replace privately.
 - `workspace/skills/plan-task/SKILL.md`: workflow for turning an intention into a task contract.
