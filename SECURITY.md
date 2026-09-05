@@ -27,5 +27,8 @@ If a secret enters Git history, deleting it in a later commit is not enough. Rev
 - Bind independent approval to the exact submitted head and effective contract, and invalidate it when either changes.
 - Fail closed on ambiguous publication, delivery, review, or merge evidence instead of guessing or blindly retrying.
 - Run unattended reconciliation and health supervision outside visible conversations so background work cannot seize foreground attention.
+- Require current lease ownership for health and terminal-state writes as well as release; storage must enforce atomic fencing.
+- Re-checkpoint every publication retry and bind evidence to its attempt; a timeout is not proof that nothing was sent.
+- Keep live validation evidence private. Empty healthy cycles and tests without genuine approval requests must not be represented as end-to-end acceptance.
 
 This repository is instructional. You are responsible for reviewing the services, models, task tracker, browser tools, and third-party skills you connect to your system.

@@ -141,11 +141,38 @@ proves that publication did not start. A busy task must not cause an interruptio
 a competing task, or a fresh incident. Unknown outcomes still require reconciliation.
 If health recovers before an alert is delivered, cancel the obsolete alert.
 
+Deferral is not permanent permission to retry. **Every attempt**, including a
+retry after a definite pre-send rejection, first persists a new `attempting`
+checkpoint. Bind acknowledgements and fresh absence evidence to that attempt;
+an uncertain response removes retry permission. `checkpointPublicationAttempt`
+and `settlePublicationAttempt` in `src/runtime-safety.mjs` model these transitions.
+The adapter must atomically compare-and-save the proposed receipt before sending;
+these pure functions do not persist state or make concurrent sends safe by themselves.
+Absence must be authoritative (not an eventually consistent list missing an item).
+
 ### Bound work and isolate failures
 
 Give each work item a durable lease with an owner, expiry, and monotonically increasing generation. A stale lease may be replaced after expiry, but its old owner cannot release the replacement. Bound each execution attempt by time or work budget, and catch failures per item so one broken issue cannot stop full-queue reconciliation.
 
 A separate detached supervisor checks reconciler health. It emits one escalation per stable failure key, suppresses repeats while the condition persists, and silently rearms after recovery.
+
+Do not equate a missing recent completion with a dead controller. Distinguish
+`running`, `completed`, and `failed`: an in-flight operation needs a fresh pulse
+**and a fixed deadline**. Pulses never extend that deadline. A new operation
+requires a new explicit bound; routine bookkeeping should have a shorter bound
+than useful long-running work. A fresh pulse proves controller liveness, not
+worker progress or successful task completion. The deterministic `workHealth`
+and `pulseWork` examples use caller-supplied time and policy values, not a daemon.
+
+Fence **all health writes**, not just lease release, to the current owner and
+generation. Persist terminal health before releasing ownership, ideally in the
+same transaction. `writeOwnedHealth` models that atomic state transition;
+production storage must enforce its compare-and-swap, not merely read a token
+and later perform an unconditional write. After takeover, a suspended old owner
+must be unable to publish health or perform other side effects. A local runtime
+without enforceable fencing should not replace a known-live owner based on
+stale timestamps alone. Package and test every new runtime dependency through
+the normal deployment path, not only a manual patch.
 
 ### Guard automatic source integration
 
@@ -193,6 +220,22 @@ different application is foreground. Record application activation separately
 from task selection. Task-switch logs alone cannot distinguish user clicks from
 unsolicited navigation. The deterministic tests here validate decisions; they do
 not certify a host application's focus behavior or substitute for a live approval test.
+
+Keep acceptance claims proportional to the evidence:
+
+| Evidence | Establishes | Does not establish |
+| --- | --- | --- |
+| Fresh bounded pulse | Controller is alive within an operation window | Worker progress or completion |
+| Healthy cycle selecting no work | Reconciliation completed | Worker → review → integration progression |
+| No-focus observation with no approval request | No observed switch in that window | Approval presentation or response safety |
+| Genuine approval request and user response | That recorded approval interaction | Every other integration or background service |
+
+A complete integration test must exercise real eligible work through independent
+review and verified integration. A real approval test must record the request,
+its response and any deliberate user navigation, and separately observe app
+activation and selected-task changes. Keep sensitive live evidence private;
+publish only generic criteria and fictional fixtures. Do not weaken approval
+policy or substitute a synthetic notification just to declare acceptance passed.
 
 ## Repository map
 
