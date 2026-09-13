@@ -30,5 +30,9 @@ If a secret enters Git history, deleting it in a later commit is not enough. Rev
 - Require current lease ownership for health and terminal-state writes as well as release; storage must enforce atomic fencing.
 - Re-checkpoint every publication retry and bind evidence to its attempt; a timeout is not proof that nothing was sent.
 - Keep live validation evidence private. Empty healthy cycles and tests without genuine approval requests must not be represented as end-to-end acceptance.
+- Repair receipts from trusted evidence without repeating paid generation or confirmed delivery; missing artifacts and uncertain outcomes must remain visible blockers.
+- Treat append-only decisions and their generated views as private operational data in a deployment. Publish only fictional examples, never reconstructed personal history.
+- Match the exact subject and agreement, accepted authority, and effective amendment dates before applying terms; similar names and upload timestamps are insufficient.
+- Keep source checks, deployment evidence, and observed behavioral verification distinct. Documentation of a pattern does not prove that an adapter exists.
 
 This repository is instructional. You are responsible for reviewing the services, models, task tracker, browser tools, and third-party skills you connect to your system.
