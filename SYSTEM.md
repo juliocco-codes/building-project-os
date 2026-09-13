@@ -2,12 +2,21 @@
 
 This repository is a small, sanitized starting point for a personal work system.
 Its JavaScript implements task validation, readiness and handoff checks, stable
-dispatch keys, contract fingerprints, and a human review handoff. It has no live
+dispatch keys, contract fingerprints, a human review handoff, and pure decision
+helpers for publication recovery, leases, bounded health, attention, and integration
+eligibility. These helpers perform no external effects. It has no live
 scheduler, database, task-client adapter, notification service, credential broker,
 delivery provider, independent-review runner, or source integrator.
 
 The following boundaries describe what a production deployment needs. They are
 lessons and acceptance requirements, not claims that the example implements them.
+
+For the executable examples, start with [task and dispatch helpers](src/project-os.mjs),
+[runtime-safety helpers](src/runtime-safety.mjs), and the [CLI](src/cli.mjs).
+The later patterns for [schedule recovery](#missed-slots-and-dependencies),
+[review carryover](#complete-review-carryover), [decision history](#decision-history-and-generated-views),
+and [effective amendments](#identity-and-effective-amendments) require deployment-specific
+storage and adapters; they are documentation only here.
 
 ## Execution, publication, and attention
 
@@ -60,18 +69,113 @@ Declare visibility independently of execution and delivery:
 |---|---|---|
 | User-facing | Keep the intended visible result; external delivery may also be authorized | Keep a concise diagnostic accessible |
 | Exception-only | Stay quiet | Publish a stable actionable exception |
-| External delivery | Hide routine execution after trusted delivery and state evidence | Preserve missing, partial, or uncertain delivery |
+| External delivery | Keep routine execution quiet after trusted delivery and state evidence; retain the canonical task's discoverability | Preserve missing, partial, or uncertain delivery |
 
 A provider attempt or model statement does not prove delivery. Trusted receipts
 bind source identity and exact content; state advances only after required receipts
 are complete. Delivery-only repair reuses retained verified content. Confirmed
 unsent parts may resume; uncertain outcomes stop to prevent duplicates.
 
+A retry must start from the durable stage and its evidence. Once paid generation
+has produced a verified artifact, retain its content hash and source identity.
+A receipt-only retry reconciles provider evidence and repairs the local receipt
+or derived state; it must not repeat paid generation or resend an already delivered
+artifact. If delivery is uncertain, use read-only reconciliation and retain that
+uncertainty until authoritative evidence resolves it. Only confirmed unsent parts
+may enter delivery-only repair using the same retained artifact. Missing or corrupt
+content is a visible blocker, not permission to regenerate. A newly authorized
+generation is separate work with its own cost and provenance.
+
 Notification policy is also separate. Routine starts, progress, review by another
 agent, and retries should stay quiet. User-owned blockers and review requests can
 request attention; completion can remain visible without a push. Do not reuse an
 external deliverable channel, such as Telegram, for task lifecycle notifications
 unless the user has separately chosen that behavior.
+
+### Missed slots and dependencies
+
+Evaluate due slots in the workflow's declared timezone, including missed slots
+earlier on the same local day. A restart between scheduled times must not make
+that day's eligible work disappear. Record each slot's disposition durably and
+keep the workflow's exclusion and idempotency checks in force during recovery.
+Define daylight-saving behavior explicitly; a local date alone is not a unique
+slot identity. Older days require an explicit catch-up policy.
+
+When the accepted policy allows coalescing, combine redundant same-day slots into
+one bounded run and record which slots it covers. Do not replay each missed slot
+as a separate paid generation or delivery, or silently mark skipped slots as
+delivered. For a fictional daily digest with morning and midday checks, an
+afternoon restart can produce one current digest covering both missed checks if
+neither already produced it and the policy permits this. Workflows that require
+distinct outputs must retain those distinctions.
+
+Resolve prerequisites before their consumers: collect eligible sources, validate
+the evidence snapshot, generate and verify the artifact, deliver, then reconcile
+receipts and derived state. A dependency being scheduled or running does not prove
+its output is ready. Reuse verified current inputs, block consumers on missing or
+failed prerequisites, and surface cycles or unavailable dependencies explicitly.
+One blocked chain must not prevent unrelated eligible workflows from progressing.
+
+## Complete review carryover
+
+Build each review from the complete unresolved population, including earlier
+reviews, pending decisions, and incomplete handoffs. Paginate the source and
+reconcile stable item identities; neither an updated-time window nor a previous
+summary is a complete inventory. If the inventory is incomplete, report that
+limitation rather than implying that all open work was reviewed.
+
+Carry every unresolved item into the next review unless the user explicitly
+snoozed it. Preserve the snooze decision and its expiry or reactivation condition,
+and bring the item back when that condition is met. Silence, age, an agent's
+priority judgment, or omission from a previous summary is not a snooze or closure.
+Evidence of completion, cancellation, or resolution can close an item. Deduplicate
+repeated mentions without losing distinct decisions. A concise review may link
+to a complete readable backlog; a short priority list must not hide the remainder.
+
+## Decision history and generated views
+
+Keep an append-only decision history as the authority for recorded decisions.
+Each event should identify the subject, decision, evidence, actor, recording time,
+and any effective date or superseded decision. Corrections and reversals append
+new events instead of rewriting the earlier rationale or turning an earlier
+failure into success. Supersession preserves the earlier event and its provenance.
+
+Generate machine-readable current state and a readable review view from that
+history using a deterministic projection. Retain the source event position or
+version in each view so stale or incomplete projections are detectable. Update
+decisions through new events, then regenerate both views; do not manually edit
+the derived state into a competing authority. Task-tracker lifecycle state and
+execution receipts still have their own roles: a decision log alone proves
+neither delivery nor completion.
+
+On adoption, record the first evidenced baseline and its actual recording time.
+Label an imported current-state snapshot as a baseline with unknown earlier
+history. Import older events only where attributable evidence exists, distinguishing
+the event's known time from the later import time. Do not invent past decisions,
+dates, actors, or approval history to make a new ledger appear complete.
+
+## Identity and effective amendments
+
+Match a source document to the exact subject and agreement before applying its
+terms: names or similar titles alone are insufficient. Check the relevant parties,
+subject, agreement identity, and version against attributable evidence. An
+unresolved identity mismatch blocks application; it must not silently amend a
+different subject or broaden an agent's authority.
+
+Preserve the baseline and each accepted amendment with its evidence, acceptance
+time, effective date, and recording time. Resolve terms for an explicit as-of
+date using the accepted amendments effective then and their documented precedence.
+A newer upload or later recording time does not make an amendment effective early.
+Missing dates, conflicting terms, or uncertain precedence need resolution; do
+not guess retroactive effect. Distinguish historical terms from current ones.
+
+For a wholly fictional agreement with Example Studio, an amendment accepted on
+2030-04-08, recorded on 2030-04-09, and effective on 2030-05-01 does not change the
+terms applicable on 2030-04-20. This example illustrates date selection only.
+The `contractFingerprint` helper hashes supplied text; it does not match identities,
+validate acceptance, resolve precedence, or choose date-effective amendments.
+A production caller must do those checks before fingerprinting the effective
+contract and seeking any newly required handoff or approval.
 
 ## Liveness and evidence
 
@@ -84,6 +188,38 @@ healthy no-op cannot conceal a stranded handoff.
 Record implementation, review, merge, deployment, live health, delivery, and
 publication separately. Retain uncertainty and historical failures rather than
 rewriting them as success after a later recovery.
+
+| Evidence stage | What to record | What it does not prove |
+|---|---|---|
+| Source | Exact commit and relevant checks or review | That an installed service uses that commit |
+| Deployed | Installed artifact or version, target environment, and rollout result | That the affected behavior has been exercised successfully |
+| Verified | Observed behavior, exact deployed version, environment, test window, and scope | Untested paths, later deployments, or every client |
+
+A source fix can be reviewed while deployment remains pending. A successful
+deployment can still await behavioral verification. Keep these states visible,
+and scope each verification to the version and path actually observed. A later
+change does not inherit that evidence automatically; preserve earlier results
+as history and identify the new checks needed. The tests in this repository prove
+deterministic helper behavior only, not a deployed scheduler or delivery adapter.
+
+## Acceptance cases for deployment adapters
+
+These are proposed checks for a deployment, not additional executable tests here:
+
+- A crash after paid generation resumes from the retained artifact; receipt repair
+  makes no generation call and confirmed delivery is not repeated.
+- An ambiguous provider response remains unresolved until exact evidence arrives;
+  a confirmed unsent part resumes without regenerating the content.
+- A same-day restart coalesces only policy-compatible missed slots, records their
+  disposition once, and runs consumers only after verified prerequisites.
+- An older unresolved decision survives review pagination and prioritization;
+  an explicitly snoozed item reappears at its recorded reactivation condition.
+- A correction appends history, regenerates both views, and leaves the prior event
+  readable; migration records an evidenced baseline without invented backhistory.
+- A similar name cannot select another agreement, and a future-effective amendment
+  cannot change today's terms or authority.
+- A passing source test leaves deployment pending; deployment without an observed
+  behavioral check leaves verification pending.
 
 ## Public and private source
 

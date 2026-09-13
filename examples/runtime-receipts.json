@@ -1,0 +1,32 @@
+{
+  "canonicalTask": {
+    "id": "issue:EXAMPLE-42",
+    "title": "Prepare a fictional launch checklist",
+    "visibility": "user",
+    "persistent": true
+  },
+  "publication": {
+    "state": "prepared",
+    "taskId": "EXAMPLE-42",
+    "fingerprint": "sha256:example-contract",
+    "lifecycle": "review",
+    "cycle": 2,
+    "submittedHead": "abc123",
+    "turnId": "turn-7"
+  },
+  "delivery": {
+    "state": "delivered",
+    "channel": "example-channel",
+    "createsUserFacingTask": false
+  },
+  "execution": {
+    "workerId": "worker:EXAMPLE-42",
+    "reviewerId": "reviewer:EXAMPLE-42",
+    "visibility": "private",
+    "lease": {
+      "owner": "worker-a",
+      "generation": 3,
+      "expiresAt": 200
+    }
+  }
+}
