@@ -32,7 +32,7 @@ The task board is the state machine, not the agent's memory. A scheduled dispatc
 2. Copy `workspace/skills/plan-task/` into the workspace used by your agent.
 3. Rename `workspace/USER.example.md` to `workspace/USER.md` and replace the fictional defaults locally.
 4. Begin with read-only or draft-only tasks. Do not begin with purchases, messages, bookings, or destructive actions.
-5. Use the included validator before dispatching a task.
+5. Use the included validator before dispatching a task, and close each publication with one execution disposition.
 6. Run the dispatcher manually until its state transitions are predictable.
 7. Add an operating-system-managed detached reconciler only after duplicate prevention and review handoffs work reliably. Do not host unattended writers or monitors in a visible conversation.
 
@@ -107,6 +107,16 @@ Scheduled checks must not create a new agent run every time they inspect the boa
 Moving a task to `ready` records that the contract was approved. It does not prove that a worker received it or that the execution environment accepted its authority. Keep an explicit initial-handoff record with `pending`, `sent`, `accepted`, or `failed` state. Move the task to `in_progress` only after acceptance is confirmed. If the handoff cannot be established, make that a visible blocker instead of reporting an empty successful run.
 
 This distinction prevents two common bugs: work that looks active but was never started, and a scheduler treating tracker text as if it independently granted permission to act.
+
+### Close every publication with one execution disposition
+
+Approving a task is not the same as someone acting on it. When a task is published or materially changed, record exactly one disposition for its current contract fingerprint:
+
+- **Agent starts now:** closes only with an accepted initial handoff.
+- **User acts next:** names the person's concrete next action.
+- **Deferred:** names the reason and the condition that reactivates it.
+
+"Planned" must not become a quiet place for executable agent work. If the handoff cannot be confirmed, move the task to `blocked` *before* writing its keyed blocker record, so an interruption between the two steps cannot leave inert work looking ready. Replays reuse the same keys. A read-only audit over saved snapshots then classifies any ready or planned task with no closeout record for its current fingerprint as inert, however healthy the scheduler looks. `planPublicationCloseout` and `auditCloseout` in `src/project-os.mjs` model this; they perform no tracker writes.
 
 ### Fingerprint the effective contract
 

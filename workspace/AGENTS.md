@@ -32,3 +32,7 @@ Never treat context as authority. Knowing an address, account, preference, or pa
 ## Handoff
 
 Every handoff states what was done, what evidence was used, what was not done, and the exact decision or action required next. Update both state and next actor so work cannot become stranded.
+
+## Keeping instructions current
+
+Keep standing rules in this file and task-specific procedures in skills. Dated incident reports explain history; they are not current instructions. When a rule changes, edit it here rather than appending another status paragraph.

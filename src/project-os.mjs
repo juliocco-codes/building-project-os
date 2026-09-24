@@ -276,3 +276,62 @@ export function verifyMerge(receipt, { mergedHead, base }) {
   if (mergedHead !== receipt.submittedHead || base !== receipt.target) return { complete: false, reason: "merge_evidence_mismatch" };
   return { complete: true, reason: "verified" };
 }
+
+const dispositions = new Set(["agent_starts_now", "user_acts_next", "deferred"]);
+
+// Every newly published or materially changed task records exactly one execution
+// disposition. Approval alone is not proof that anyone will act on the work.
+export function validateDisposition(task, disposition) {
+  const errors = [];
+  if (!dispositions.has(disposition?.kind)) return ["Disposition must be agent_starts_now, user_acts_next, or deferred."];
+  if (!disposition.nextAction?.trim()) errors.push("A disposition names the concrete next action.");
+  if (disposition.kind === "agent_starts_now" && task.nextActor !== "agent") errors.push("agent_starts_now requires the agent as next actor.");
+  if (disposition.kind === "user_acts_next" && task.nextActor !== "human") errors.push("user_acts_next requires the human as next actor.");
+  if (disposition.kind === "deferred" && (!disposition.reason?.trim() || !disposition.activationCondition?.trim())) {
+    errors.push("Deferred work needs a reason and an activation condition.");
+  }
+  return errors;
+}
+
+export function closeoutRecordKey(task, fingerprint, kind) {
+  return stableReceiptKey("closeout", { taskId: task.id, revision: task.revision, fingerprint, kind });
+}
+
+// Plan the ordered, idempotent operations that close publication. Agent-owned
+// work closes only with an accepted handoff; otherwise the task becomes blocked
+// before its keyed blocker is written, so an interruption cannot leave inert work
+// looking ready.
+export function planPublicationCloseout(task, { disposition, fingerprint, initialHandoff = task?.initialHandoff }) {
+  if (!fingerprint) throw new Error("Closeout requires the effective-contract fingerprint.");
+  const errors = validateDisposition(task, disposition);
+  if (errors.length) return { classification: "invalid", errors, operations: [] };
+  const record = { kind: disposition.kind, nextAction: disposition.nextAction, fingerprint };
+  if (disposition.kind === "user_acts_next") {
+    return { classification: "user_owned", operations: [{ type: "record", key: closeoutRecordKey(task, fingerprint, "disposition"), value: record }] };
+  }
+  if (disposition.kind === "deferred") {
+    const value = { ...record, reason: disposition.reason, activationCondition: disposition.activationCondition };
+    return { classification: "deferred", operations: [{ type: "record", key: closeoutRecordKey(task, fingerprint, "disposition"), value }] };
+  }
+  const handoff = confirmInitialHandoff(task, initialHandoff);
+  if (!handoff.confirmed) {
+    return {
+      classification: "blocked_handoff",
+      operations: [
+        ...(task.state === "blocked" ? [] : [{ type: "set_state", state: "blocked" }]),
+        { type: "record", key: closeoutRecordKey(task, fingerprint, "handoff_required"), value: { ...record, reason: handoff.reason } },
+      ],
+    };
+  }
+  return { classification: "dispatched", operations: [{ type: "record", key: closeoutRecordKey(task, fingerprint, "handoff_accepted"), value: record }] };
+}
+
+// Read-only audit over saved snapshots: ready or planned work with no closeout
+// record for its current fingerprint is inert, however healthy the scheduler looks.
+export function auditCloseout(task, { fingerprint, recordKeys = new Set() }) {
+  if (!["ready", "planned"].includes(task.state)) return { classification: "not_applicable" };
+  const kinds = ["disposition", "handoff_accepted", "handoff_required"];
+  const present = kinds.filter((kind) => recordKeys.has(closeoutRecordKey(task, fingerprint, kind)));
+  if (present.length === 0) return { classification: "inert", reason: "no_closeout_record" };
+  return { classification: "closed", records: present };
+}
