@@ -335,3 +335,15 @@ export function auditCloseout(task, { fingerprint, recordKeys = new Set() }) {
   if (present.length === 0) return { classification: "inert", reason: "no_closeout_record" };
   return { classification: "closed", records: present };
 }
+
+const thirdPartyOrigins = new Set(["email", "message", "web", "shared_document", "notification"]);
+
+// Runtime permissions follow the provenance of a task's inputs. Contract authority
+// still decides what a trusted agent may do; this only decides where it runs.
+export function permissionTier(inputs = []) {
+  const untrusted = inputs.filter((input) => thirdPartyOrigins.has(input?.origin));
+  if (untrusted.length === 0) {
+    return { tier: "trusted", credentials: true, writes: "contract", sandbox: false };
+  }
+  return { tier: "restricted", credentials: false, writes: "proposals_only", sandbox: true, because: untrusted.map((input) => input.origin) };
+}
