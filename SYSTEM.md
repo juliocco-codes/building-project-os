@@ -2,7 +2,8 @@
 
 This repository is a small, sanitized starting point for a personal work system.
 Its JavaScript implements task validation, readiness and handoff checks, stable
-dispatch keys, contract fingerprints, a human review handoff, and pure decision
+dispatch keys, contract fingerprints, a human review handoff, publication
+closeout planning and audit, and pure decision
 helpers for publication recovery, leases, bounded health, attention, and integration
 eligibility. These helpers perform no external effects. It has no live
 scheduler, database, task-client adapter, notification service, credential broker,
@@ -55,6 +56,15 @@ Changed heads, conflicts, failed checks, or missing evidence stop with a blocker
 An uncertain merge response requires read-only reconciliation, not another merge.
 Deployment remains a separate authorized effect with rollback and fresh health
 verification. None of these production integration operations is implemented here.
+
+Agents often need to read a private repository or service without being able to
+change it. Give them a narrow broker rather than a credential. It should offer a
+fixed set of literal operations (for example "inspect" and "refresh the default
+branch"), with the repository, remote and refs fixed in the broker rather than
+supplied by the caller. The broker runs outside the agent's sandbox and never
+returns the credential. Read access confers no authority to push, open or merge
+changes, or deploy. A browser view of the remote is not a substitute for
+refreshing the local reference.
 
 ## Scheduled delivery
 
@@ -132,6 +142,13 @@ Evidence of completion, cancellation, or resolution can close an item. Deduplica
 repeated mentions without losing distinct decisions. A concise review may link
 to a complete readable backlog; a short priority list must not hide the remainder.
 
+Absent evidence is not an empty result. When a reader cannot open its source
+(a missing tool, an unfamiliar storage format, a truncated page or a changed
+content hash mid-pagination), report a coverage limitation for that source and
+keep everything else. Never report "no open items" from a check that did not
+complete. A fallback reader should be read-only, scoped to identifiers the
+decision history already names, and fail visibly on format drift.
+
 ## Decision history and generated views
 
 Keep an append-only decision history as the authority for recorded decisions.
@@ -202,6 +219,36 @@ change does not inherit that evidence automatically; preserve earlier results
 as history and identify the new checks needed. The tests in this repository prove
 deterministic helper behavior only, not a deployed scheduler or delivery adapter.
 
+### Trace running code to source
+
+A merged change is not an installed change, and an installed change is not
+necessarily merged. Services that run pinned copies outside the repository drift
+quietly: a hot fix is applied on the host, a branch is deployed before review
+finishes, or two services install different versions of one shared helper.
+Keep a read-only inventory that hashes every installed file and reports which
+source commit, if any, contains those exact bytes, alongside loaded services and
+their latest outcomes. Treat "never committed" as a defect to capture before
+the next deployment, because redeploying from source would silently remove it.
+Record known drift explicitly instead of letting documentation claim parity.
+
+Separate current instructions from dated incident reports. Handbooks describe
+integrated behaviour and stable invariants; the inventory and receipts describe
+what is running now. Status paragraphs copied into a handbook go stale and start
+to compete with the evidence.
+
+### Shared model quota is a common-mode failure
+
+Every headless workflow, reviewer and dispatcher that draws on the same model
+account fails together when its quota is exhausted. A model-capacity fallback
+does not help: switching models is appropriate for a capacity rejection before
+work starts, not for a usage limit on the account. Make quota exhaustion a
+distinct, deduplicated exception with its reset time, pause non-essential
+polling (especially minute-level reviewers) and keep a documented manual or
+alternative-provider path for deliverables that matter. A worker that exits
+successfully has not delivered anything; only a delivery receipt proves that.
+Persist the watchdog's own explanation before it interacts with any external
+catalogue, so a failed lookup cannot erase the diagnosis.
+
 ## Acceptance cases for deployment adapters
 
 These are proposed checks for a deployment, not additional executable tests here:
@@ -220,6 +267,14 @@ These are proposed checks for a deployment, not additional executable tests here
   cannot change today's terms or authority.
 - A passing source test leaves deployment pending; deployment without an observed
   behavioral check leaves verification pending.
+- Approved agent work with no accepted handoff is blocked before its blocker record
+  is written; an audit flags ready or planned work with no closeout record.
+- A reader that cannot open its source reports a coverage limitation, never an
+  empty result.
+- An inventory run identifies every installed file that differs from the intended
+  source, including files present in no commit.
+- Exhausted model quota produces one exception with its reset time; capacity
+  fallback is not attempted and no partial output is reported as delivered.
 
 ## Public and private source
 
