@@ -31,7 +31,7 @@ The task board is the state machine, not the agent's memory. A scheduled dispatc
 1. Choose a task tracker with an API. The examples use generic issue-shaped JSON rather than requiring Linear.
 2. Copy `workspace/skills/plan-task/` into the workspace used by your agent.
 3. Rename `workspace/USER.example.md` to `workspace/USER.md` and replace the fictional defaults locally.
-4. Begin with read-only or draft-only tasks. Do not begin with purchases, messages, bookings, or destructive actions.
+4. Begin with read-only or draft-only tasks. Do not begin with purchases, messages, bookings, or destructive actions. Run agents that read other people's messages or web content in a restricted, credential-free profile from the start.
 5. Use the included validator before dispatching a task, and close each publication with one execution disposition.
 6. Run the dispatcher manually until its state transitions are predictable.
 7. Add an operating-system-managed detached reconciler only after duplicate prevention and review handoffs work reliably. Do not host unattended writers or monitors in a visible conversation.
@@ -121,6 +121,10 @@ Approving a task is not the same as someone acting on it. When a task is publish
 ### Fingerprint the effective contract
 
 Retries and amendments need a deterministic way to decide whether they still refer to the same work. Fingerprint the frozen baseline plus accepted amendments, not ordinary comments or lifecycle metadata. Normalize line endings, remove trailing whitespace on each line, trim surrounding blank lines, join amendments with a fixed separator, and hash the resulting UTF-8 text. A material scope or authority change produces a new fingerprint and therefore requires a new handoff.
+
+### Restrict by input, not by task
+
+Agents that act on the user's own requests, files and repositories can use ordinary tools such as Git, the GitHub CLI and local installs. Their contract and review gates bound what they do. Agents that read text written by other people (email, messages, web pages) are where prompt injection lives, so they run sandboxed, without credentials, and can only propose. Engineering elaborate workarounds so a sandboxed agent can do basic work is a sign that the task belongs in the trusted tier. See [permission tiers](SYSTEM.md#permission-tiers-by-input-trust).
 
 ### Separate orchestration, work, and review
 

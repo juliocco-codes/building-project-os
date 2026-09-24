@@ -3,10 +3,10 @@
 This repository is a small, sanitized starting point for a personal work system.
 Its JavaScript implements task validation, readiness and handoff checks, stable
 dispatch keys, contract fingerprints, a human review handoff, publication
-closeout planning and audit, and pure decision
+closeout planning and audit, input-based permission tiers, and pure decision
 helpers for publication recovery, leases, bounded health, attention, and integration
 eligibility. These helpers perform no external effects. It has no live
-scheduler, database, task-client adapter, notification service, credential broker,
+scheduler, database, task-client adapter, notification service, credential adapter,
 delivery provider, independent-review runner, or source integrator.
 
 The following boundaries describe what a production deployment needs. They are
@@ -57,21 +57,51 @@ An uncertain merge response requires read-only reconciliation, not another merge
 Deployment remains a separate authorized effect with rollback and fresh health
 verification. None of these production integration operations is implemented here.
 
-Agents often need to read a private repository or service without being able to
-change it. Give them a narrow broker rather than a credential. It should offer a
-fixed set of literal operations (for example "inspect" and "refresh the default
-branch"), with the repository, remote and refs fixed in the broker rather than
-supplied by the caller. The broker runs outside the agent's sandbox and never
-returns the credential. Read access confers no authority to push, open or merge
-changes, or deploy. A browser view of the remote is not a substitute for
-refreshing the local reference.
+### Permission tiers by input trust
+
+Decide an agent's runtime permissions by who wrote its inputs, not by how risky
+the task sounds.
+
+- **Trusted tier.** Planning, coding, dispatch, review and integration work whose
+  inputs come from the user, their own repositories and their own files. These
+  agents run with the user's ordinary tooling: normal Git and GitHub CLI access,
+  package managers, local services and installs. What they may *do* is still
+  bounded by the accepted contract, independent review and explicit approval for
+  external effects. The runtime does not need to re-enforce those rules.
+- **Restricted tier.** Any agent that reads text written by third parties (email,
+  chat messages, social notifications, web pages, shared documents) runs in a
+  sandboxed profile. It has no credentials and no repository or package writes,
+  and its output is limited to proposals and drafts for a trusted agent or the
+  user to act on. A prompt injection in an email should at most produce a bad
+  proposal.
+
+Keep the tiers separate by task, not by instruction. A trusted agent that needs
+third-party content receives it as data from a restricted agent's output, never
+by browsing or reading the inbox itself.
+
+Do not engineer around a sandbox to make a trusted agent do ordinary work.
+When a basic task (fetching a repository, opening a pull request, installing a
+reviewed service) needs a new subsystem to get through the runtime's
+restrictions, move that task to the trusted tier instead. Bespoke brokers,
+approval relays and host-network workarounds become permanent infrastructure
+to maintain, and each drifts and fails independently.
 
 ## Scheduled delivery
 
 Use deterministic preflight to decide whether source material is eligible before
 starting model work. Checkpoint schedule slots and use per-workflow exclusion.
-Collect credentialed sources through a bounded trusted adapter; give authoring
+Collect credentialed sources through a deterministic adapter and give authoring
 workers only the minimum evidence they need, preferably a hash-verified snapshot.
+The adapter is the single place secrets are injected and logged, and authoring
+cannot silently refetch. Without separate operating-system identities it is a
+convention, not a wall: in the trusted tier, an agent with the user's permissions
+could read the same secrets.
+
+Receipts prove delivery only if the authoring agent could not have written them.
+Either the delivery service owns its receipts under a separate identity or key
+the agents cannot read, or the deployment accepts that receipts are only as
+trustworthy as its agents and says so. Restricted-tier agents must never be able
+to write receipts.
 
 Declare visibility independently of execution and delivery:
 
@@ -271,6 +301,8 @@ These are proposed checks for a deployment, not additional executable tests here
   is written; an audit flags ready or planned work with no closeout record.
 - A reader that cannot open its source reports a coverage limitation, never an
   empty result.
+- An agent reading third-party content runs without credentials or writes, and a
+  planted instruction produces at most a proposal.
 - An inventory run identifies every installed file that differs from the intended
   source, including files present in no commit.
 - Exhausted model quota produces one exception with its reset time; capacity
