@@ -3,11 +3,11 @@
 This repository is a small, sanitized starting point for a personal work system.
 Its JavaScript implements task validation, readiness and handoff checks, stable
 dispatch keys, contract fingerprints, a human review handoff, publication
-closeout planning and audit, input-based permission tiers, and pure decision
-helpers for publication recovery, leases, bounded health, attention, and integration
-eligibility. These helpers perform no external effects. It has no live
-scheduler, database, task-client adapter, notification service, credential adapter,
-delivery provider, independent-review runner, or source integrator.
+closeout planning and audit, and pure decision helpers for publication recovery,
+leases, bounded health, attention, and integration eligibility. These helpers
+perform no external effects. It has no live scheduler, database, task-client
+adapter, notification service, credential adapter, delivery provider,
+independent-review runner, or source integrator.
 
 The following boundaries describe what a production deployment needs. They are
 lessons and acceptance requirements, not claims that the example implements them.
@@ -57,34 +57,39 @@ An uncertain merge response requires read-only reconciliation, not another merge
 Deployment remains a separate authorized effect with rollback and fresh health
 verification. None of these production integration operations is implemented here.
 
-### Permission tiers by input trust
+### Permissions: bound what agents do, not where they run
 
-Decide an agent's runtime permissions by who wrote its inputs, not by how risky
-the task sounds.
+Run every agent with the user's ordinary tooling: normal Git and GitHub CLI
+access, package managers, local services and installs, and the credentials its
+work needs. Contain risk, including prompt injection from email, messages or web
+pages, through what an agent is allowed to do:
 
-- **Trusted tier.** Planning, coding, dispatch, review and integration work whose
-  inputs come from the user, their own repositories and their own files. These
-  agents run with the user's ordinary tooling: normal Git and GitHub CLI access,
-  package managers, local services and installs. What they may *do* is still
-  bounded by the accepted contract, independent review and explicit approval for
-  external effects. The runtime does not need to re-enforce those rules.
-- **Restricted tier.** Any agent that reads text written by third parties (email,
-  chat messages, social notifications, web pages, shared documents) runs in a
-  sandboxed profile. It has no credentials and no repository or package writes,
-  and its output is limited to proposals and drafts for a trusted agent or the
-  user to act on. A prompt injection in an email should at most produce a bad
-  proposal.
+- an accepted contract defines each task's scope and permitted side effects;
+- external effects (sending, paying, deleting, publishing) need the user's
+  explicit confirmation;
+- scheduled runs that read third-party text only propose; the user's direct
+  follow-up is what authorizes;
+- independent review precedes any merge, and no agent approves its own work.
 
-Keep the tiers separate by task, not by instruction. A trusted agent that needs
-third-party content receives it as data from a restricted agent's output, never
-by browsing or reading the inbox itself.
+An earlier design split agents into a trusted tier and a sandboxed,
+credential-free tier for anything that read third-party text. In practice the
+restricted tier pushed ordinary work (fetching a repository, opening a pull
+request, installing a reviewed service) into bespoke brokers, approval relays
+and host-network workarounds. In the deployment this repository is drawn from,
+that permanent infrastructure cost more, and failed more often, than the risk it
+removed, so the tiers were dropped.
 
-Do not engineer around a sandbox to make a trusted agent do ordinary work.
-When a basic task (fetching a repository, opening a pull request, installing a
-reviewed service) needs a new subsystem to get through the runtime's
-restrictions, move that task to the trusted tier instead. Bespoke brokers,
-approval relays and host-network workarounds become permanent infrastructure
-to maintain, and each drifts and fails independently.
+State the trade-off plainly. An agent that reads a malicious message holds the
+user's permissions. The gates above stop it only where something outside the
+agent enforces them: for example, send, pay and publish tools that require out-
+of-band confirmation, or a branch protection that refuses unreviewed merges.
+Where the agent is merely instructed, a gate is a convention, not a wall. An
+injected agent can still read what the user can read, reach the network, and
+write locally. Interactive runs that read third-party content rely on the
+enforced confirmations alone. A deployment with higher-risk inputs or weaker
+enforcement may still choose a sandbox. If it does, keep the sandboxed work
+self-contained. Do not engineer around the sandbox to make an agent do ordinary
+work; change the configuration or run the task outside it.
 
 ## Scheduled delivery
 
@@ -94,14 +99,13 @@ Collect credentialed sources through a deterministic adapter and give authoring
 workers only the minimum evidence they need, preferably a hash-verified snapshot.
 The adapter is the single place secrets are injected and logged, and authoring
 cannot silently refetch. Without separate operating-system identities it is a
-convention, not a wall: in the trusted tier, an agent with the user's permissions
-could read the same secrets.
+convention, not a wall: an agent with the user's permissions could read the
+same secrets.
 
 Receipts prove delivery only if the authoring agent could not have written them.
 Either the delivery service owns its receipts under a separate identity or key
 the agents cannot read, or the deployment accepts that receipts are only as
-trustworthy as its agents and says so. Restricted-tier agents must never be able
-to write receipts.
+trustworthy as its agents and says so.
 
 Declare visibility independently of execution and delivery:
 
