@@ -273,6 +273,10 @@ Do not move a task to `in_progress` and hope task creation succeeds. Confirm the
 - A recovery observer repeatedly sees a long-running tool or private subagent and never navigates or sends a speculative approval alert.
 - A supervisor encounters a busy canonical task, retains one pending incident, and publishes once after the writer finishes.
 - Health recovers while an alert is deferred, making delivery unnecessary.
+- A long-running scheduler keeps the schedule it loaded at start-up, so a newly installed workflow never runs. An installed file is not proof that the running process loaded it.
+- A job fires the instant a laptop wakes, before its network is up, and an unreplayable worker failure loses that run. A readiness gate that opens after a bounded outage must count only a continuous outage, so a stale "down since" timestamp from an earlier brief wake cannot open it early or overstate the outage.
+- A paid provider rejects a request (out of credits, billing, rate limit). That definite rejection is safe to retry, while a server error may have been charged and needs a bounded retry. An idempotency key reused after a rejection can replay the cached rejection.
+- One failed item at the head of an oldest-first queue holds back every later item until something marks it skipped.
 
 Validate the whole installed system with auxiliary approval and recovery services
 enabled, including duplicate-service detection. Exercise ordinary tools, private
