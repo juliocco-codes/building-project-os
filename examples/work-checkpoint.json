@@ -1,0 +1,13 @@
+{
+  "fictional": true,
+  "note": "Illustrative schema only; no persistence or engine-switch adapter is included.",
+  "objective": "Prepare a comparison of three fictional venues.",
+  "work_record": "existing-private-task-reference",
+  "authority": "Research and drafting only; no messages or reservations.",
+  "artifacts": [{"ref": "private-comparison-document", "revision": "fictional-revision-2"}],
+  "completed": ["Compared location, accessibility, and published cancellation terms."],
+  "effects": [{"action": "Save comparison", "outcome": "verified", "evidence": "fictional document readback"}],
+  "uncertainties": ["Availability has not been confirmed."],
+  "next_actor": "agent",
+  "next_action": "Refresh authority, verify the artifact revision, and finish the recommendation without contacting venues."
+}

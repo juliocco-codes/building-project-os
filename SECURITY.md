@@ -34,7 +34,8 @@ If a secret enters Git history, deleting it in a later commit is not enough. Rev
 - Treat append-only decisions and their generated views as private operational data in a deployment. Publish only fictional examples, never reconstructed personal history.
 - Match the exact subject and agreement, accepted authority, and effective amendment dates before applying terms; similar names and upload timestamps are insufficient.
 - Keep source checks, deployment evidence, and observed behavioral verification distinct. Documentation of a pattern does not prove that an adapter exists.
-- Assume any agent that reads third-party content (email, messages, web pages, shared documents) may be prompt-injected. Keep its scheduled output to proposals, and require the user's explicit confirmation for every external effect, whatever its permissions.
+- Assume any agent that reads third-party content (email, messages, web pages, shared documents) may be prompt-injected. Scheduled readers propose by default. Explicitly authorized internal maintenance uses approved sources, destinations, and fact types, preserves provenance, and rejects stale writes. It cannot modify its own authority or treat source text as instructions. External effects retain explicit confirmation requirements, whatever the agent's permissions.
+- Keep communication archives, relationship records, voice samples, propagation ledgers, and checkpoints private. Publish fictional examples only. Shared skill text does not share credentials or another engine's tools.
 - Never deploy code that exists in no reviewed commit.
 - Receipts written somewhere an agent can write are not proof of delivery; give the delivery service its own identity or key.
 - Do not schedule minute-level agent loops for review or polling; they consume shared quota and fail together with everything else when it runs out.

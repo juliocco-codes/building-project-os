@@ -1,0 +1,15 @@
+{
+  "fictional": true,
+  "note": "Illustrative schema only; no storage or writer is included.",
+  "decision": "Use Example Studio's approved short biography for introductions.",
+  "source": "fictional owner instruction",
+  "recorded_at": "2030-04-09T09:00:00Z",
+  "effective_date": "2030-04-09",
+  "authority": "Owner authorized the private biography and its summary only.",
+  "supersedes": ["earlier-biography-preference"],
+  "targets": [
+    {"owner": "biography", "role": "canonical", "state": "applied", "evidence": "fictional verified file receipt"},
+    {"owner": "wiki", "role": "summary", "state": "pending", "reason": "Expected prior version changed; reconcile before writing."}
+  ],
+  "external_effects_authorized": false
+}

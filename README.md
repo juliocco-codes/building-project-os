@@ -1,16 +1,18 @@
 # Building Project OS
 
-Project OS is a personal work-dispatch system. It turns an informal intention into a scoped task, gives an agent the context and authority it needs, and brings the work back when human judgment is genuinely required.
+Project OS connects personal knowledge, shared agent instructions, and work dispatch. It gives an agent the relevant context and authority, preserves decisions across conversations, and turns an informal intention into work with an observable next step.
 
 The aim is to get more from personal AI without becoming the routing layer between every tool and agent. Instead of choosing a system, reconstructing context, and supervising each step, the user has one place to describe an outcome and one queue of decisions that need attention.
 
-It is the system described in [Putting life on autopilot](https://juliocothon.com/essays/putting-life-on-autopilot).
+The initial build is described in [Putting life on autopilot](https://juliocothon.com/essays/putting-life-on-autopilot). This public reference shares reusable patterns from its continued development.
 
 ## What this changes for the individual
 
 - One conversation can become a properly scoped unit of work.
 - Several tasks can progress without the user manually starting and routing every step.
 - Personal context can be reused without being reconstructed for every tool.
+- Accepted corrections can reach the records that future conversations consult.
+- Another supported engine can resume from shared records and verified effects.
 - Research, comparisons, and drafts can return as useful first versions rather than open-ended agent activity.
 - Purchases, messages, bookings, credentials, and physical actions can come back as explicit decisions.
 - The user can see what is ready, active, waiting for review, or complete in one place.
@@ -28,10 +30,10 @@ The task board is the state machine, not the agent's memory. A scheduled dispatc
 
 ## Start here
 
-1. Choose a task tracker with an API. The examples use generic issue-shaped JSON rather than requiring Linear.
-2. Copy `workspace/skills/plan-task/` into the workspace used by your agent.
-3. Rename `workspace/USER.example.md` to `workspace/USER.md` and replace the fictional defaults locally.
-4. Begin with read-only or draft-only tasks. Do not begin with purchases, messages, bookings, or destructive actions. Treat agents that read other people's messages or web content as injectable from the start: proposals only on scheduled runs, and explicit confirmation for every external effect.
+1. Create a private workspace using the [shared foundation guide](docs/shared-foundation.md). Connect your usual starting directory to canonical instructions and a context index.
+2. Choose a task tracker with an API; the generic examples do not require Linear. Install `workspace/skills/plan-task/` through your agent’s supported skill location.
+3. Customize private copies of the [user defaults](workspace/USER.example.md), [context index](workspace/context/context-index.example.md), and [voice guide](workspace/VOICE.example.md). Keep completed personal versions outside this public repository.
+4. Begin with read-only or draft-only tasks. Do not begin with purchases, messages, bookings, or destructive actions. Assume third-party text can contain prompt injection. Scheduled readers propose by default; the optional [internal-maintenance policy](docs/knowledge-and-continuity.md#bounded-maintenance-authority) requires explicit user authorization. External effects retain their own confirmation requirements.
 5. Use the included validator before dispatching a task, and close each publication with one execution disposition.
 6. Run the dispatcher manually until its state transitions are predictable.
 7. Add an operating-system-managed detached reconciler only after duplicate prevention and review handoffs work reliably. Do not host unattended writers or monitors in a visible conversation.
@@ -44,7 +46,7 @@ deployment still needs, including receipt-only recovery without repeating paid
 generation, missed-slot coalescing and dependency order, complete unresolved review
 carryover, append-only decisions with generated views, and identity-matched,
 date-effective amendments. These additional patterns are documentation, not new
-runtime adapters. Source, deployment, and behavioral verification need separate
+runtime adapters. The [knowledge and continuity guide](docs/knowledge-and-continuity.md) adds selective retrieval, decision propagation, portable checkpoints, and weekly upkeep as deployment designs. No installer, memory service, or engine failover is included. Source, deployment, and behavioral verification need separate
 evidence.
 
 The repository is intentionally standalone and public. Do not use it as a remote
@@ -64,7 +66,7 @@ Every dispatchable task should state:
 - the outcome, rather than only an activity;
 - what is in and out of scope;
 - the evidence or freshness requirements;
-- the actions the agent is authorised to take;
+- the actions the agent is authorized to take;
 - the actions that always require review;
 - the next actor;
 - what completion looks like;
@@ -124,7 +126,7 @@ Retries and amendments need a deterministic way to decide whether they still ref
 
 ### Bound what agents do, not where they run
 
-Agents use ordinary tools such as Git, the GitHub CLI and local installs. Contracts, review gates and explicit confirmation of external effects (sending, paying, deleting, publishing) bound what they do. Scheduled runs that read other people's text only propose. A sandboxed, credential-free tier for those readers was tried and dropped in the deployment this repo comes from. It pushed basic work into brokers and relays that cost more than the risk they removed. See [permissions](SYSTEM.md#permissions-bound-what-agents-do-not-where-they-run).
+Agents use ordinary tools such as Git, the GitHub CLI and local installs. Contracts, review gates and explicit confirmation of external effects (sending, paying, deleting, publishing) bound what they do. Scheduled readers propose by default. Explicitly authorized internal maintenance may apply supported facts through a bounded writer; it cannot grant itself new authority. A sandboxed, credential-free tier for those readers was tried and dropped in the deployment this repo comes from. It pushed basic work into brokers and relays that cost more than the risk they removed. See [permissions](SYSTEM.md#permissions-bound-what-agents-do-not-where-they-run).
 
 ### Separate orchestration, work, and review
 
@@ -306,7 +308,11 @@ policy or substitute a synthetic notification just to declare acceptance passed.
 
 - `AGENTS.md`: contributor instructions for this sanitized repository.
 - [SYSTEM.md](SYSTEM.md): architecture lessons, implementation boundaries, and production acceptance requirements.
+- [docs/shared-foundation.md](docs/shared-foundation.md): canonical instructions, engine entry points, and shared skills.
+- [docs/knowledge-and-continuity.md](docs/knowledge-and-continuity.md): retrieval, propagation, checkpoints, and maintenance.
 - `workspace/AGENTS.md`: operating rules and authority boundaries.
+- `workspace/CLAUDE.md`: imports the same workspace rules.
+- `workspace/VOICE.example.md` and `workspace/context/context-index.example.md`: private-context templates.
 - `workspace/USER.example.md`: fictional defaults to replace privately.
 - `workspace/skills/plan-task/SKILL.md`: workflow for turning an intention into a task contract.
 - [src/project-os.mjs](src/project-os.mjs): validation, dispatch eligibility, state transitions, review handoffs, and runtime decision helpers.
@@ -316,6 +322,7 @@ policy or substitute a synthetic notification just to declare acceptance passed.
 - `examples/task.json`: a fictional partially automatable task.
 - [examples/runtime-receipts.json](examples/runtime-receipts.json): fictional runtime receipts and integration evidence.
 - `examples/review-handoff.md`: the expected review format.
+- [examples/decision-propagation.json](examples/decision-propagation.json) and [examples/work-checkpoint.json](examples/work-checkpoint.json): fictional records without storage adapters.
 - `SECURITY.md`: privacy and automation-safety checklist.
 
 ## License

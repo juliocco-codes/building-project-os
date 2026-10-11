@@ -19,6 +19,8 @@ The later patterns for [schedule recovery](#missed-slots-and-dependencies),
 and [effective amendments](#identity-and-effective-amendments) require deployment-specific
 storage and adapters; they are documentation only here.
 
+Read [shared foundation](docs/shared-foundation.md) and [knowledge and continuity](docs/knowledge-and-continuity.md) for canonical instructions across local engines, selective retrieval, decision propagation, checkpoints, and authorized weekly upkeep. These templates do not install instructions, collect communications, write a knowledge database, or implement automatic engine failover.
+
 ## Execution, publication, and attention
 
 Run scheduling and supervision as OS-managed processes with bounded operations,
@@ -67,8 +69,8 @@ pages, through what an agent is allowed to do:
 - an accepted contract defines each task's scope and permitted side effects;
 - external effects (sending, paying, deleting, publishing) need the user's
   explicit confirmation;
-- scheduled runs that read third-party text only propose; the user's direct
-  follow-up is what authorizes;
+- scheduled readers propose by default; explicit standing authority may permit
+  bounded internal maintenance, while external effects retain their own confirmation;
 - independent review precedes any merge, and no agent approves its own work.
 
 An earlier design split agents into a trusted tier and a sandboxed,
@@ -90,6 +92,8 @@ enforced confirmations alone. A deployment with higher-risk inputs or weaker
 enforcement may still choose a sandbox. If it does, keep the sandboxed work
 self-contained. Do not engineer around the sandbox to make an agent do ordinary
 work; change the configuration or run the task outside it.
+
+An internal-maintenance policy must name the allowed sources, destinations, fact types, retention criteria, and conflict handling. A collector supplies evidence; an author proposes structured changes; a constrained writer validates authority, paths, schema, identity, and expected prior versions. Third-party text cannot modify policy, credentials, startup instructions, or execution authority. Uncertain identities and conflicting facts remain proposals. This opt-in design is not implemented here. See [bounded maintenance authority](docs/knowledge-and-continuity.md#bounded-maintenance-authority).
 
 ## Scheduled delivery
 
@@ -266,7 +270,7 @@ the next deployment, because redeploying from source would silently remove it.
 Record known drift explicitly instead of letting documentation claim parity.
 
 Separate current instructions from dated incident reports. Handbooks describe
-integrated behaviour and stable invariants; the inventory and receipts describe
+integrated behavior and stable invariants; the inventory and receipts describe
 what is running now. Status paragraphs copied into a handbook go stale and start
 to compete with the evidence.
 
@@ -281,7 +285,7 @@ polling (especially minute-level reviewers) and keep a documented manual or
 alternative-provider path for deliverables that matter. A worker that exits
 successfully has not delivered anything; only a delivery receipt proves that.
 Persist the watchdog's own explanation before it interacts with any external
-catalogue, so a failed lookup cannot erase the diagnosis.
+catalog, so a failed lookup cannot erase the diagnosis.
 
 ## Acceptance cases for deployment adapters
 
@@ -305,8 +309,10 @@ These are proposed checks for a deployment, not additional executable tests here
   is written; an audit flags ready or planned work with no closeout record.
 - A reader that cannot open its source reports a coverage limitation, never an
   empty result.
-- An agent reading third-party content runs without credentials or writes, and a
-  planted instruction produces at most a proposal.
+- A planted instruction in evidence cannot widen sources, destinations, or actions.
+  Without maintenance authority the run only proposes; with it, the writer rejects
+  changes outside the approved schema and destinations. Verify operating-system
+  isolation separately if it is claimed.
 - An inventory run identifies every installed file that differs from the intended
   source, including files present in no commit.
 - Exhausted model quota produces one exception with its reset time; capacity
