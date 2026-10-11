@@ -14,3 +14,7 @@ All details in this file are fictional. Replace it locally and never commit the 
 - Reading public information, comparing options, and drafting are allowed.
 - Sending, booking, purchasing, deleting, publishing, and changing permissions require explicit review.
 - Credentials, identity verification, legal acceptance, and physical actions always belong to the user.
+
+## Optional internal maintenance
+
+Default: propose changes only. Before enabling automatic upkeep, explicitly name approved sources, destinations, facts, exclusions, conflict handling, and required evidence. This template grants no maintenance authority by itself. See the [maintenance design](../docs/knowledge-and-continuity.md).
