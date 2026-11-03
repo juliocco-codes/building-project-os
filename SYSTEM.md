@@ -61,37 +61,19 @@ verification. None of these production integration operations is implemented her
 
 ### Permissions: bound what agents do, not where they run
 
-Run every agent with the user's ordinary tooling: normal Git and GitHub CLI
-access, package managers, local services and installs, and the credentials its
-work needs. Contain risk, including prompt injection from email, messages or web
-pages, through what an agent is allowed to do:
+Choose the smallest set of tools and credentials each role needs. A reader that
+only extracts facts can work in isolation. A worker that edits a repository
+needs access to its worktree. If a reader needs to propose a change, it can pass
+evidence to a separately authorized writer.
 
-- an accepted contract defines each task's scope and permitted side effects;
-- external effects (sending, paying, deleting, publishing) need the user's
-  explicit confirmation;
-- scheduled readers propose by default; explicit standing authority may permit
-  bounded internal maintenance, while external effects retain their own confirmation;
-- independent review precedes any merge, and no agent approves its own work.
+A contract records the actions the user approved. For sending, paying, deleting
+and publishing, enforce the confirmation at the tool or service that performs
+the action. Require independent review before merge. Instructions alone cannot
+prevent an injected worker from using permissions its credentials already grant.
 
-An earlier design split agents into a trusted tier and a sandboxed,
-credential-free tier for anything that read third-party text. In practice the
-restricted tier pushed ordinary work (fetching a repository, opening a pull
-request, installing a reviewed service) into bespoke brokers, approval relays
-and host-network workarounds. In the deployment this repository is drawn from,
-that permanent infrastructure cost more, and failed more often, than the risk it
-removed, so the tiers were dropped.
-
-State the trade-off plainly. An agent that reads a malicious message holds the
-user's permissions. The gates above stop it only where something outside the
-agent enforces them: for example, send, pay and publish tools that require out-
-of-band confirmation, or a branch protection that refuses unreviewed merges.
-Where the agent is merely instructed, a gate is a convention, not a wall. An
-injected agent can still read what the user can read, reach the network, and
-write locally. Interactive runs that read third-party content rely on the
-enforced confirmations alone. A deployment with higher-risk inputs or weaker
-enforcement may still choose a sandbox. If it does, keep the sandboxed work
-self-contained. Do not engineer around the sandbox to make an agent do ordinary
-work; change the configuration or run the task outside it.
+Isolation can limit exposure to third-party input. Every bridge added to reach a
+protected resource introduces another component to secure and maintain. Evaluate
+both the access the worker retains and the narrower alternatives for its task.
 
 An internal-maintenance policy must name the allowed sources, destinations, fact types, retention criteria, and conflict handling. A collector supplies evidence; an author proposes structured changes; a constrained writer validates authority, paths, schema, identity, and expected prior versions. Third-party text cannot modify policy, credentials, startup instructions, or execution authority. Uncertain identities and conflicting facts remain proposals. This opt-in design is not implemented here. See [bounded maintenance authority](docs/knowledge-and-continuity.md#bounded-maintenance-authority).
 
@@ -288,6 +270,10 @@ Persist the watchdog's own explanation before it interacts with any external
 catalog, so a failed lookup cannot erase the diagnosis.
 
 ## Acceptance cases for deployment adapters
+
+The [weekly review fixture test](test/weekly-review.test.mjs) exercises the public
+contract, dispatch and review-handoff helpers. A connected implementation also
+needs to pass these [source coverage, restart and follow-up cases](docs/weekly-review.md#adapter-acceptance-cases).
 
 These are proposed checks for a deployment, not additional executable tests here:
 
