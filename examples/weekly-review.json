@@ -1,0 +1,13 @@
+{
+  "id": "DEMO-REVIEW",
+  "revision": 1,
+  "outcome": "Draft a decision review for the fictional field guide project.",
+  "state": "ready",
+  "nextActor": "agent",
+  "automationLevel": "partial",
+  "inScope": ["Read the project notes, project calendar and research update for this review", "Draft decisions and record missing evidence", "Draft a follow-up when outstanding evidence changes a decision"],
+  "outOfScope": ["Change the guide", "Edit the calendar", "Contact contributors"],
+  "authority": {"allowed": ["read", "draft"], "requiresReview": ["send", "publish"]},
+  "success": "Each expected source has a coverage note. Each decision names its evidence and next actor. Outstanding research has a resumption condition.",
+  "initialHandoff": {"taskId": "DEMO-REVIEW", "revision": 1, "state": "accepted"}
+}
