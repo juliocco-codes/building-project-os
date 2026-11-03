@@ -6,6 +6,19 @@ The aim is to get more from personal AI without becoming the routing layer betwe
 
 The initial build is described in [Putting life on autopilot](https://juliocothon.com/essays/putting-life-on-autopilot). This public reference shares reusable patterns from its continued development.
 
+## Project OS in practice
+
+| You ask | What comes back | Your next step |
+| --- | --- | --- |
+| “What needs my attention on the field guide this week?” | A short review with decisions, evidence and a coverage note for each expected source. | Choose a recommendation or ask for a revision. |
+| “Finish the review when the research arrives.” | A follow-up naming the decision the new evidence changes. Completed checks carry forward within their freshness window. | Revisit the affected decision. |
+| “Turn this idea into a short explainer.” | A brief you can correct before a second skill drafts the storyboard. | Approve the claim before production and review the draft before publication. |
+
+Start with the [weekly review walkthrough](docs/weekly-review.md). You can validate
+its fictional contract and check dispatch eligibility locally. The walkthrough shows
+the outputs a connected system would produce. The [two-skill example](docs/explainer-handoff.md)
+can be followed manually in a conversation.
+
 ## What this changes for the individual
 
 - One conversation can become a properly scoped unit of work.
@@ -126,7 +139,7 @@ Retries and amendments need a deterministic way to decide whether they still ref
 
 ### Bound what agents do, not where they run
 
-Agents use ordinary tools such as Git, the GitHub CLI and local installs. Contracts, review gates and explicit confirmation of external effects (sending, paying, deleting, publishing) bound what they do. Scheduled readers propose by default. Explicitly authorized internal maintenance may apply supported facts through a bounded writer; it cannot grant itself new authority. A sandboxed, credential-free tier for those readers was tried and dropped in the deployment this repo comes from. It pushed basic work into brokers and relays that cost more than the risk they removed. See [permissions](SYSTEM.md#permissions-bound-what-agents-do-not-where-they-run).
+Give each task an explicit scope. Require separate confirmation for external effects such as sending, paying, deleting or publishing. Scheduled readers propose changes by default. Choose tools and isolation based on what each worker needs to read or change, and enforce consequential decisions outside the worker. See the [permissions discussion](SYSTEM.md#permissions-bound-what-agents-do-not-where-they-run).
 
 ### Separate orchestration, work, and review
 
