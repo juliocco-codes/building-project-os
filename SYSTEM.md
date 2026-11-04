@@ -7,7 +7,10 @@ closeout planning and audit, and pure decision helpers for publication recovery,
 leases, bounded health, attention, and integration eligibility. These helpers
 perform no external effects. It has no live scheduler, database, task-client
 adapter, notification service, credential adapter, delivery provider,
-independent-review runner, or source integrator.
+independent-review runner, or source integrator. The separate
+[local weekly-review starter](src/weekly-review.mjs) adds JSON checkpoints,
+explicit mock approvals, and a durable mock inbox. It performs local file writes
+only and is not one of those production adapters.
 
 The following boundaries describe what a production deployment needs. They are
 lessons and acceptance requirements, not claims that the example implements them.
@@ -83,7 +86,8 @@ Use deterministic preflight to decide whether source material is eligible before
 starting model work. Checkpoint schedule slots and use per-workflow exclusion.
 Collect credentialed sources through a deterministic adapter and give authoring
 workers only the minimum evidence they need, preferably a hash-verified snapshot.
-The adapter is the single place secrets are injected and logged, and authoring
+The adapter is the single place credentials are made available. Log redacted
+operation metadata and credential references, never secret values. Authoring
 cannot silently refetch. Without separate operating-system identities it is a
 convention, not a wall: an agent with the user's permissions could read the
 same secrets.
@@ -237,7 +241,8 @@ deployment can still await behavioral verification. Keep these states visible,
 and scope each verification to the version and path actually observed. A later
 change does not inherit that evidence automatically; preserve earlier results
 as history and identify the new checks needed. The tests in this repository prove
-deterministic helper behavior only, not a deployed scheduler or delivery adapter.
+deterministic helper behavior and the local mock workflow, not a deployed
+scheduler or real delivery adapter.
 
 ### Trace running code to source
 

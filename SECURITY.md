@@ -41,3 +41,63 @@ If a secret enters Git history, deleting it in a later commit is not enough. Rev
 - Do not schedule minute-level agent loops for review or polling; they consume shared quota and fail together with everything else when it runs out.
 
 This repository is instructional. You are responsible for reviewing the services, models, task tracker, browser tools, and third-party skills you connect to your system.
+
+## Local starter trust model
+
+The [weekly-review starter](docs/weekly-review.md) runs without secrets, accounts,
+network access, a language model, or installed dependencies. Its only effect is
+writing fictional data to a local directory. Use a directory you own on a local
+filesystem; this sample does not defend against hostile symlinks, other OS users,
+malicious code running as you, or filesystem rollback.
+
+The exercise distinguishes three logical roles:
+
+- The worker owns the checkpoint, artifact, and references to approval and delivery.
+- The mock human authority owns accepted grants in `authority.json`. Grants bind
+  the exact contract, artifact hash, map decision, action, and fixed destination.
+- The mock provider owns effects in `provider.json`. A worker-side receipt is
+  accepted only when it matches the exact provider operation and delivered content.
+
+These are separate files under the **same OS identity**. They are synthetic trust
+anchors, not authenticated services. Any agent with that user's access can edit
+both registries or invoke the approval command. A hash proves content equality,
+not who approved or delivered it. The starter rejects forged worker references,
+stale grants, and mismatched receipts only while the authoritative registries and
+program remain trusted. Do not describe this as tamper-proof authorization.
+
+A production design needs a grant authority outside worker control, an
+authenticated human approval path, a delivery service with its own identity or
+signing key, and a trusted verifier. Bind grants and receipts to the task,
+effective contract, artifact, operation, destination, and applicable expiry or
+revocation state. Distinguish quality approval from permission to deliver.
+Never log secret values; keep redacted operation metadata and credential
+references separate from credentials themselves.
+
+The local provider is a single-writer file with stable operation keys. While its
+exclusive lock is held, a missing entry means the mock effect has not occurred.
+Real APIs may return incomplete or eventually consistent lists. Missing evidence
+there is **unknown**, not permission to send again. Require authoritative
+reconciliation and provider-enforced idempotency. A receipt written after an
+uncertain response cannot replace either requirement.
+
+Source fixtures accept only a bounded schema; text remains data and cannot set
+authority or a destination. Adversarial text tests establish this deterministic
+behavior. They do not establish that a model, tool-using agent, connected source,
+or deployment is prompt-injection-proof. Evaluate those systems and enforce their
+consequential boundaries outside the model.
+
+## Automated checks and public contributions
+
+`npm run verify` runs tests, checks local Markdown links and heading anchors,
+and scans a small set of disclosure tripwires. The scanner catches several token
+shapes, private file locations, and personal home paths. It is not exhaustive:
+names, private context, unexpected credential formats, images, and historical
+disclosure still require human review of the complete outgoing files and commits.
+The link checker does not fetch remote URLs.
+
+The `verify` CI job uses a GitHub-hosted runner and read-only repository
+permissions. It fetches the exact public event commit without a token or persisted
+credentials, invokes no third-party actions, installs no dependencies, and uses
+no secrets or privileged pull-request events. The runner's Node version is checked
+for compatibility; it is not a pinned runtime image. Repository branch protection
+and independent human review remain separate configuration and process controls.
