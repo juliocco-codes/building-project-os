@@ -7,9 +7,10 @@ const [command, file, ...args] = process.argv.slice(2);
 try {
   if (command === "weekly") {
     const [directory, ...options] = args;
-    if (!file || !directory) throw new Error("Usage: node src/cli.mjs weekly <init|review|late|approve|deliver|status> <directory> [approval arguments | --crash-after-provider]");
+    if (!file || !directory) throw new Error("Usage: node src/cli.mjs weekly <init|review|late|approve|deliver|status> <directory> [approval arguments | --crash-before-provider | --crash-after-provider]");
     const crashAfterProvider = file === "deliver" && options.length === 1 && options[0] === "--crash-after-provider";
-    console.log(JSON.stringify(runWeeklyReview(file, directory, crashAfterProvider ? [] : options, { crashAfterProvider }), null, 2));
+    const crashBeforeProvider = file === "deliver" && options.length === 1 && options[0] === "--crash-before-provider";
+    console.log(JSON.stringify(runWeeklyReview(file, directory, crashAfterProvider || crashBeforeProvider ? [] : options, { crashAfterProvider, crashBeforeProvider }), null, 2));
   } else {
     if (!command || !file || args.length || !["validate", "dispatch"].includes(command)) {
       throw new Error("Usage: node src/cli.mjs <validate|dispatch> <task.json> OR weekly <command> <directory>");

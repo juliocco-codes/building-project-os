@@ -70,6 +70,49 @@ test("stale approval, changed sources, and expired or future checks cannot autho
   assert.equal(read(dir, "provider").effects.length, 0);
 });
 
+test("pre-provider crash with changed or expired evidence retires confirmed-unsent attempt for fresh review", t => {
+  for (const change of ["late", "expired"]) {
+    const dir = fixture(t);
+    const original = review(dir);
+    approve(dir, original);
+    assert.throws(() => deliver(dir, { crashBeforeProvider: true }), /before provider commit/);
+    assert.equal(read(dir, "checkpoint").stage, "attempting");
+    assert.equal(read(dir, "provider").effects.length, 0);
+    if (change === "late") run("late", dir);
+    const now = change === "expired" ? NOW + 86400000 : NOW;
+    const retired = deliver(dir, { now });
+    assert.equal(retired.stage, "awaiting-review");
+    assert.equal(retired.reason, "confirmed-unsent-stale-attempt");
+    assert.equal(retired.mockDeliveries, 0);
+    assert.equal(read(dir, "checkpoint").history[0].stage, "confirmed-unsent");
+    assert.throws(() => deliver(dir, { now }), /No accepted grant/);
+    const fresh = run("review", dir, [], { now });
+    assert.notEqual(fresh.artifactHash, original.artifactHash);
+    assert.equal(fresh.history.length, 1);
+    assert.throws(() => run("approve", dir, [original.artifactHash, "linked", "--mock-delivery"], { now }), /current artifact hash/);
+    run("approve", dir, [fresh.artifactHash, fresh.artifact.map, "--mock-delivery"], { now });
+    assert.equal(deliver(dir, { now }).mockDeliveries, 1);
+    assert.equal(read(dir, "provider").effects[0].artifact.map, change === "late" ? "printable" : "linked");
+  }
+});
+
+test("pre-provider recovery cannot infer absence from missing or corrupt provider evidence", t => {
+  for (const corrupt of [
+    dir => rmSync(join(dir, "provider.json")),
+    dir => writeFileSync(join(dir, "provider.json"), "not-json"),
+    dir => edit(dir, "provider", value => { value.effects = [{ uncertain: true }]; }),
+  ]) {
+    const dir = fixture(t);
+    approve(dir);
+    assert.throws(() => deliver(dir, { crashBeforeProvider: true }), /before provider commit/);
+    run("late", dir);
+    corrupt(dir);
+    assert.throws(() => deliver(dir));
+    assert.equal(read(dir, "checkpoint").stage, "attempting");
+    assert.equal(read(dir, "checkpoint").history.length, 0);
+  }
+});
+
 test("editing worker status or forging its grant reference does not create acceptance", t => {
   const dir = fixture(t);
   review(dir);
@@ -154,6 +197,8 @@ test("CLI persists across processes, rejects implicit approval, and preserves ol
   const proposal = JSON.parse(cli("weekly", "review", dir).stdout);
   assert.equal(cli("weekly", "approve", dir, proposal.artifactHash, "linked").status, 1);
   assert.equal(cli("weekly", "approve", dir, proposal.artifactHash, "linked", "--mock-delivery").status, 0);
+  assert.equal(cli("weekly", "deliver", dir, "--crash-before-provider").status, 1);
+  assert.equal(read(dir, "provider").effects.length, 0);
   assert.equal(cli("weekly", "deliver", dir, "--crash-after-provider").status, 1);
   assert.equal(JSON.parse(cli("weekly", "deliver", dir).stdout).mockDeliveries, 1);
   assert.equal(JSON.parse(cli("weekly", "deliver", dir).stdout).mockDeliveries, 1);

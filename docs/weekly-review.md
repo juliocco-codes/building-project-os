@@ -79,6 +79,14 @@ deliveries: the original draft and its approved amendment. It does not deliver
 the amendment twice. Repeating `late`, `review`, and `deliver` within the freshness
 window leaves that count unchanged.
 
+You can also use `--crash-before-provider` on an approved, undelivered draft. It
+stops after saving `attempting` but before the mock effect. If the sources stay
+current, `deliver` resumes that operation. If research changes or a check expires,
+`deliver` first verifies absence in the intact mock provider, records the attempt
+as `confirmed-unsent`, and returns `awaiting-review` without sending the stale
+draft. Run `review` and approve the new hash. Missing, malformed, or mismatched
+provider evidence blocks recovery; it does not establish absence.
+
 This simulated interruption releases the local process lock. A real terminated
 process may leave `.lock` behind. Follow the [recovery guide](operating-lessons.md#backup-and-restore)
 before removing it. Local atomic rename and exclusive ownership do not constitute

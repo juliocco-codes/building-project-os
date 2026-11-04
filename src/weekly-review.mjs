@@ -73,13 +73,17 @@ function load(dir) {
   return state;
 }
 
+function sourceChecksCurrent(state, input, now) {
+  return ["notes", "calendar", "research"].every(name => {
+    const check = state.coverage[name];
+    return check && check.sourceHash === digest(input[name]) && Number.isFinite(check.checkedAt)
+      && check.checkedAt <= now && now - check.checkedAt < MAX_AGE;
+  });
+}
+
 function current(state, input, now) {
   if (!state.artifact) fail("Run review first");
-  for (const name of ["notes", "calendar", "research"]) {
-    const check = state.coverage[name];
-    if (!check || check.sourceHash !== digest(input[name]) || !Number.isFinite(check.checkedAt)
-      || check.checkedAt > now || now - check.checkedAt >= MAX_AGE) fail("Sources changed or expired; run review and obtain fresh approval");
-  }
+  if (!sourceChecksCurrent(state, input, now)) fail("Sources changed or expired; run review and obtain fresh approval");
   if (digest(artifactFor(input, state.coverage)) !== state.artifactHash) fail("Checkpoint does not match source evidence");
 }
 
@@ -103,6 +107,15 @@ function acceptedGrant(dir, state) {
 function provider(dir) {
   const registry = read(dir, "provider");
   if (registry.version !== 1 || !Array.isArray(registry.effects)) fail("Invalid provider registry");
+  for (const effect of registry.effects) {
+    const receipt = effect?.receipt;
+    if (!receipt || typeof receipt.grantId !== "string" || !["linked", "printable"].includes(receipt.decision)
+      || digest(effect.artifact) !== receipt.artifactHash
+      || JSON.stringify(receipt) !== JSON.stringify(expectedReceipt(
+        { artifactHash: receipt.artifactHash }, { id: receipt.grantId, decision: receipt.decision }))) {
+      fail("Provider evidence is malformed or mismatched");
+    }
+  }
   return registry;
 }
 
@@ -119,7 +132,7 @@ function reconcile(state, registry, grant) {
   return { expected, effect };
 }
 
-export function runWeeklyReview(command, dir, args = [], { now = Date.now(), crashAfterProvider = false } = {}) {
+export function runWeeklyReview(command, dir, args = [], { now = Date.now(), crashAfterProvider = false, crashBeforeProvider = false } = {}) {
   if (!Number.isFinite(now)) fail("Invalid time");
   if (command === "init") {
     if (args.length) fail("init accepts no additional arguments");
@@ -158,7 +171,7 @@ export function runWeeklyReview(command, dir, args = [], { now = Date.now(), cra
       const artifact = artifactFor(input, state.coverage);
       const artifactHash = digest(artifact);
       if (artifactHash !== state.artifactHash) {
-        if (state.artifactHash) state.history.push({ artifactHash: state.artifactHash, stage: state.stage, receipt: state.receipt ?? null });
+        if (state.artifactHash && state.stage !== "awaiting-review") state.history.push({ artifactHash: state.artifactHash, stage: state.stage, receipt: state.receipt ?? null });
         Object.assign(state, { artifact, artifactHash, stage: "awaiting-approval", grantId: null, receipt: null });
         write(dir, "checkpoint", state);
       }
@@ -196,10 +209,22 @@ export function runWeeklyReview(command, dir, args = [], { now = Date.now(), cra
     const { expected, effect } = reconcile(state, registry, grant);
     // Confirmed delivery can be reconciled even after source changes or expiry.
     if (!effect) {
+      if (state.stage === "attempting" && !sourceChecksCurrent(state, input, now)) {
+        // Only the intact authoritative mock ledger under this lock establishes
+        // absence. A real provider's unknown outcome must never enter this branch.
+        state.history.push({ artifactHash: state.artifactHash, grantId: state.grantId,
+          stage: "confirmed-unsent", receipt: null, reconciledAt: now,
+          reason: "Sources changed or expired before the mock effect occurred." });
+        Object.assign(state, { stage: "awaiting-review", grantId: null, receipt: null });
+        write(dir, "checkpoint", state);
+        return { stage: state.stage, mockDeliveries: registry.effects.length,
+          reason: "confirmed-unsent-stale-attempt", next: "Run review and approve the fresh artifact before delivery." };
+      }
       current(state, input, now);
       if (state.stage === "delivered") fail("Provider evidence missing for completed delivery");
       state.stage = "attempting";
       write(dir, "checkpoint", state);
+      if (crashBeforeProvider) fail("Simulated crash before provider commit; rerun deliver to reconcile");
       registry.effects.push({ receipt: expected, artifact: state.artifact });
       write(dir, "provider", registry);
       if (crashAfterProvider) fail("Simulated crash after provider commit; rerun deliver to reconcile");
