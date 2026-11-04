@@ -1,0 +1,29 @@
+name: Verify
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      # Public repository only. No action, token, persisted credential, or privileged PR event.
+      - name: Fetch the exact event commit
+        env:
+          REPOSITORY_URL: ${{ github.server_url }}/${{ github.repository }}
+          EVENT_SHA: ${{ github.sha }}
+        run: |
+          git init .
+          git remote add origin "$REPOSITORY_URL"
+          git fetch --no-tags --depth=1 origin "$EVENT_SHA"
+          git checkout --detach FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "$EVENT_SHA"
+      - name: Check Node runtime
+        run: |
+          node --version
+          node -e 'if (Number(process.versions.node.split(".")[0]) < 20) process.exit(1)'
+      - name: Test, check documentation, and scan disclosure tripwires
+        run: npm run verify

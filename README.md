@@ -14,10 +14,35 @@ The initial build is described in [Putting life on autopilot](https://juliocotho
 | “Finish the review when the research arrives.” | A follow-up naming the decision the new evidence changes. Completed checks carry forward within their freshness window. | Revisit the affected decision. |
 | “Turn this idea into a short explainer.” | A brief you can correct before a second skill drafts the storyboard. | Approve the claim before production and review the draft before publication. |
 
-Start with the [weekly review walkthrough](docs/weekly-review.md). You can validate
-its fictional contract and check dispatch eligibility locally. The walkthrough shows
-the outputs a connected system would produce. The [two-skill example](docs/explainer-handoff.md)
-can be followed manually in a conversation.
+Start with the [runnable weekly review](docs/weekly-review.md). With Node.js 20 or
+later, you can create a fictional local review, add late research, approve an
+exact draft, and recover a simulated delivery crash without a duplicate. It
+requires no accounts, secrets, network access, model calls, or runtime dependencies.
+The [two-skill example](docs/explainer-handoff.md) can be followed manually in a conversation.
+
+```sh
+npm run verify
+mkdir -p state
+node src/cli.mjs weekly init state/weekly
+node src/cli.mjs weekly review state/weekly
+```
+
+Read the returned artifact before approving it. The walkthrough explains the
+approval command and crash/retry exercise. Delivery only writes a mock inbox on
+your disk; it sends no message.
+
+## What works here
+
+| Capability | Included | Still needed for a connected system |
+| --- | --- | --- |
+| Task validation, fingerprints, dispatch and review decisions | Executable pure helpers and tests | Tracker, accepted execution grants, durable dispatch transport |
+| Weekly review, source coverage, late research | Runnable fixed fictional workflow with persistent JSON checkpoints | Authenticated sources, real pagination, freshness policy, model authoring |
+| Human decision and delivery approval | Explicit CLI command bound to exact artifact, contract, map choice, and mock destination | Authenticated human identity and grant service inaccessible to workers |
+| Crash/retry and receipt reconciliation | Local mock provider commits one effect per stable key; restart reconciles it | Provider-supported idempotency, authoritative queries, durable transactional storage |
+| Authority and receipt checks | Worker claims checked against separate mock registries | Separate identities or keys; local editable files are not a security boundary |
+| Publication, leases, attention, integration | Pure decision helpers | Production adapters, fencing, independent reviewer, observed acceptance tests |
+| Continuity, failover, backup and restore | [Guides and acceptance checks](docs/operating-lessons.md) | Engine integrations, private storage, recovery drills |
+| CI | Tests, local documentation links, disclosure tripwires | Human disclosure review and repository protection settings |
 
 ## What this changes for the individual
 
@@ -61,6 +86,11 @@ carryover, append-only decisions with generated views, and identity-matched,
 date-effective amendments. These additional patterns are documentation, not new
 runtime adapters. The [knowledge and continuity guide](docs/knowledge-and-continuity.md) adds selective retrieval, decision propagation, portable checkpoints, and weekly upkeep as deployment designs. No installer, memory service, or engine failover is included. Source, deployment, and behavioral verification need separate
 evidence.
+
+The runnable starter adds local persistence and mock delivery to those helpers;
+it does not install or connect a personal assistant. See the [security boundaries](SECURITY.md#local-starter-trust-model)
+before replacing any mock. The source-injection fixtures test deterministic data
+handling, not resistance of an AI model to prompt injection.
 
 The repository is intentionally standalone and public. Do not use it as a remote
 or branch for a private operational system; contribute only rewritten, generic
@@ -117,7 +147,7 @@ Partially automatable work should stop at a crisp decision. A good handoff says 
 
 Scheduled checks must not create a new agent run every time they inspect the board. Give every initial dispatch, review, and correction a stable key containing the task, revision, cycle, and contract fingerprint. Write `pending` before sending, and never resend a record already marked `sent` or `accepted`. Before retrying a `pending` or `failed` record, the transport must establish that the earlier attempt did not start. A timeout after a possible send is uncertain and needs read-only reconciliation; the small retry helper does not establish that evidence itself.
 
-### Ready is authorisation, not proof of delivery
+### Ready is authorization, not proof of delivery
 
 Moving a task to `ready` records that the contract was approved. It does not prove that a worker received it or that the execution environment accepted its authority. Keep an explicit initial-handoff record with `pending`, `sent`, `accepted`, or `failed` state. Move the task to `in_progress` only after acceptance is confirmed. If the handoff cannot be established, make that a visible blocker instead of reporting an empty successful run.
 

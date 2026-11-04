@@ -3,7 +3,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test"
+    "test": "node --test",
+    "check:docs": "node scripts/check-doc-links.mjs",
+    "check:disclosure": "node scripts/check-disclosure.mjs",
+    "verify": "npm test && npm run check:docs && npm run check:disclosure"
   },
   "engines": {
     "node": ">=20"
