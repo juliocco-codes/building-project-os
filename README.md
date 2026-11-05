@@ -6,6 +6,16 @@ The aim is to get more from personal AI without becoming the routing layer betwe
 
 The initial build is described in [Putting life on autopilot](https://juliocothon.com/essays/putting-life-on-autopilot). This public reference shares reusable patterns from its continued development.
 
+## Schedule your first task on a Mac
+
+Pick a time, close Terminal, and come back to a dated text file listing open and closed threads. The Mac keeps the schedule. Start with two fictional threads and Node.js 20 or later. Preview the report from the repository folder.
+
+```sh
+npm run evening -- preview 19:00
+```
+
+When the preview looks right, run `npm run evening -- install 19:00` (or choose your own local time). The walkthrough shows where to find the report, how to check the job, how to remove it, and how to try your own read-only source. [Schedule an evening review](docs/mac-evening-review.md)
+
 ## Project OS in practice
 
 | You ask | What comes back | Your next step |
@@ -14,7 +24,7 @@ The initial build is described in [Putting life on autopilot](https://juliocotho
 | “Finish the review when the research arrives.” | A follow-up naming the decision the new evidence changes. Completed checks carry forward within their freshness window. | Revisit the affected decision. |
 | “Turn this idea into a short explainer.” | A brief you can correct before a second skill drafts the storyboard. | Approve the claim before production and review the draft before publication. |
 
-Start with the [runnable weekly review](docs/weekly-review.md). With Node.js 20 or
+For a second exercise, try the [runnable weekly review](docs/weekly-review.md). With Node.js 20 or
 later, you can create a fictional local review, add late research, approve an
 exact draft, and recover a simulated delivery crash without a duplicate. It
 requires no accounts, secrets, network access, model calls, or runtime dependencies.
@@ -36,6 +46,7 @@ your disk; it sends no message.
 | Capability | Included | Still needed for a connected system |
 | --- | --- | --- |
 | Task validation, fingerprints, dispatch and review decisions | Executable pure helpers and tests | Tracker, accepted execution grants, durable dispatch transport |
+| Scheduled evening review on macOS | Per-user LaunchAgent, one local thread file, dated reports | Readers for connected sources or an optional agent worker |
 | Weekly review, source coverage, late research | Runnable fixed fictional workflow with persistent JSON checkpoints | Authenticated sources, real pagination, freshness policy, model authoring |
 | Human decision and delivery approval | Explicit CLI command bound to exact artifact, contract, map choice, and mock destination | Authenticated human identity and grant service inaccessible to workers |
 | Crash/retry and receipt reconciliation | Local mock provider commits one effect per stable key; restart reconciles it | Provider-supported idempotency, authoritative queries, durable transactional storage |
@@ -84,7 +95,7 @@ deployment still needs, including receipt-only recovery without repeating paid
 generation, missed-slot coalescing and dependency order, complete unresolved review
 carryover, append-only decisions with generated views, and identity-matched,
 date-effective amendments. These additional patterns are documentation, not new
-runtime adapters. The [knowledge and continuity guide](docs/knowledge-and-continuity.md) adds selective retrieval, decision propagation, portable checkpoints, and weekly upkeep as deployment designs. No installer, memory service, or engine failover is included. Source, deployment, and behavioral verification need separate
+runtime adapters. The [knowledge and continuity guide](docs/knowledge-and-continuity.md) adds selective retrieval, decision propagation, portable checkpoints, and weekly upkeep as deployment designs. The Mac installer covers only the evening-review example. Memory services and engine failover remain deployment work. Source, deployment, and behavioral verification need separate
 evidence.
 
 The runnable starter adds local persistence and mock delivery to those helpers;

@@ -27,3 +27,47 @@ jobs:
           node -e 'if (Number(process.versions.node.split(".")[0]) < 20) process.exit(1)'
       - name: Test, check documentation, and scan disclosure tripwires
         run: npm run verify
+  mac-evening-review:
+    runs-on: macos-15
+    timeout-minutes: 8
+    steps:
+      - name: Fetch the exact public event commit
+        env:
+          REPOSITORY_URL: ${{ github.server_url }}/${{ github.repository }}
+          EVENT_SHA: ${{ github.sha }}
+        run: |
+          git init .
+          git remote add origin "$REPOSITORY_URL"
+          git fetch --no-tags --depth=1 origin "$EVENT_SHA"
+          git checkout --detach FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "$EVENT_SHA"
+      - name: Observe one calendar-triggered report and unload its job
+        shell: bash
+        run: |
+          set -euo pipefail
+          data="$HOME/Library/Application Support/Building Project OS/Evening Review"
+          test ! -e "$data"
+          target=$(date -v+2M '+%Y-%m-%d %H:%M')
+          report="$data/reports/${target% *}.txt"
+          node scripts/mac-evening-review.mjs preview "${target#* }"
+          node scripts/mac-evening-review.mjs install "${target#* }"
+          trap 'node scripts/mac-evening-review.mjs uninstall' EXIT
+          /usr/bin/plutil -lint "$HOME/Library/LaunchAgents/org.building-project-os.evening-review.plist"
+          test ! -e "$report"
+          for i in {1..90}; do
+            if [[ -f "$report" ]]; then break; fi
+            sleep 2
+          done
+          test -f "$report"
+          test "$(date -r "$report" '+%Y-%m-%d %H:%M')" = "$target"
+          grep -F 'Open (1)' "$report"
+          grep -F 'Workshop room' "$report"
+          node scripts/mac-evening-review.mjs check
+          node scripts/mac-evening-review.mjs uninstall
+          trap - EXIT
+          test ! -e "$HOME/Library/LaunchAgents/org.building-project-os.evening-review.plist"
+          for i in {1..10}; do
+            if node scripts/mac-evening-review.mjs check | grep -F 'Job is unloaded.'; then exit 0; fi
+            sleep 1
+          done
+          exit 1

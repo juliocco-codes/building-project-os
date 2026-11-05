@@ -42,6 +42,10 @@ If a secret enters Git history, deleting it in a later commit is not enough. Rev
 
 This repository is instructional. You are responsible for reviewing the services, models, task tracker, browser tools, and third-party skills you connect to your system.
 
+## Mac evening review
+
+The optional [Mac starter](docs/mac-evening-review.md) installs one job for the signed-in user. Its worker reads one JSON file and writes plain text in a dedicated reports folder. Source text supplies display fields only. Use a local folder you control. The worker runs under your account and its file layout assumes trusted local programs. Keep adapted input, reports, and errors outside version control. Removing the schedule retains these files for you to inspect.
+
 ## Local starter trust model
 
 The [weekly-review starter](docs/weekly-review.md) runs without secrets, accounts,
