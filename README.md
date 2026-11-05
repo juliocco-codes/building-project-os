@@ -4,7 +4,7 @@ Project OS connects personal knowledge, shared agent instructions, and work disp
 
 The aim is to get more from personal AI without becoming the routing layer between every tool and agent. Instead of choosing a system, reconstructing context, and supervising each step, the user has one place to describe an outcome and one queue of decisions that need attention.
 
-The initial build is described in [Putting life on autopilot](https://juliocothon.com/essays/putting-life-on-autopilot). This public reference shares reusable patterns from its continued development.
+[Putting life on autopilot](https://juliocothon.com/essays/putting-life-on-autopilot) describes Project OS when it was just getting started. The project has evolved considerably since then. For the current public implementation, follow the code and walkthroughs in this repository.
 
 ## Try the family bill in five minutes
 
