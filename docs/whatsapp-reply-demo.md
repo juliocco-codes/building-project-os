@@ -52,6 +52,16 @@ The saved receipt should match the mock provider receipt. Repeating `send` retur
 
 Every edit produces a new preview ID, even if you later restore the old wording. Try `edit state/replies parent attachment none` or `edit state/replies parent attachment bill` after restarting the parent case. This request requires the reviewed bill before approval. The `recipient` edit accepts an exact fixture chat ID. Changing it invalidates approval, and approval refuses any recipient outside the original conversation. Choose the separate case to reply to someone else.
 
+## Review a family acknowledgment
+
+The [five-minute exercise](../README.md#try-the-family-bill-in-five-minutes) uses `npm run evening -- review state/family-bill` before sending, after sending, and after receiving a separate fictional acknowledgment. You can substitute the state directory from your own run. This review reads the fictional parent request and local mock provider. It works without registering a scheduled job.
+
+The [incoming fixture](../examples/parent-bill-acknowledgment.json) names the exact receipt of the unedited family reply. The mock conversation puts the first outgoing bill in slot 1 and the acknowledgment in slot 2. The event identifies Mom as the sender in that same chat. The exercise recognizes this specific receipt-confirmation event. Other incoming wording requires human interpretation.
+
+If you approved edited text, that send has a different receipt. To simulate Mom responding to the edited version, copy the incoming fixture into your ignored state directory, inspect the outgoing reply in `mock-provider.json`, then set the copy's `inReplyTo` to its actual receipt. Supply the copy's path to `receive`. A mismatched receipt stops the import. Running `receive` again with the same evidence records it once.
+
+The first review after confirmation saves the closure report and its evidence ID together in `replies.json` under `familyClosure`. You can read that report again there if Terminal output is interrupted. Later reviews keep the item closed without announcing it again. This example confirms receipt of the document. Payment would need separate evidence.
+
 ## Recover a missing receipt
 
 Restart the canceled parent draft, preview it, and copy its new ID. Use an approved case that has never run `send` for this exercise.

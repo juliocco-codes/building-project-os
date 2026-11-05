@@ -85,6 +85,20 @@ function validateGrant(grant, expectedId) {
   }
 }
 
+// Each case permits one outbound bill. Legacy mock effects occupy the same first outgoing slot.
+function matchAcknowledgment(event, effect) {
+  const expected = { source: "fictional-incoming", kind: "attachment-received", chat: cases.parent.chat,
+    chatIdentity: cases.parent.jid, sender: cases.parent.jid, direction: "incoming",
+    message: "parent-april-received", body: "Got it, thanks" };
+  const sentAt = effect && Object.hasOwn(effect, "sequence") ? effect.sequence : 1;
+  if (!effect || !Object.entries(expected).every(([key, value]) => event?.[key] === value) ||
+      event.inReplyTo !== effect.receipt || !Number.isSafeInteger(sentAt) || sentAt < 1 ||
+      !Number.isSafeInteger(event.sequence) || event.sequence <= sentAt) {
+    fail("Acknowledgment must be the later fictional incoming reply from Mom to this exact bill send.");
+  }
+  return { ...expected, inReplyTo: event.inReplyTo, sequence: event.sequence };
+}
+
 function providerAt(dir) {
   const registry = read(dir, "mock-provider");
   if (registry?.version !== 1 || !registry.effects ||
@@ -96,7 +110,52 @@ function providerAt(dir) {
         effect.payload.evidence?.chat !== c.chat || effect.payload.evidence.chatIdentity !== c.jid || effect.payload.evidence?.message !== c.message ||
         effect.receipt !== "mock-" + digest(effect.payload)) fail("Mock provider evidence is mismatched. Reconcile before retrying.");
   }
+  if (Object.hasOwn(registry, "parentAcknowledgment")) {
+    registry.parentAcknowledgment = matchAcknowledgment(registry.parentAcknowledgment, registry.effects.parent);
+  }
   return registry;
+}
+
+function familyEvidence(dir, state, registry) {
+  const { parent: effect } = registry.effects;
+  const acknowledgment = registry.parentAcknowledgment;
+  const draft = state.drafts.parent;
+  if (effect) {
+    const grant = read(dir, "approvals").parent;
+    validateGrant(grant, effect.receipt.slice("mock-".length));
+    if (grant.payload.action !== "simulate-whatsapp-reply" || grant.payload.attachment?.name !== billName) {
+      fail("The approved send must include the April bill.");
+    }
+  }
+  if ((draft?.stage === "simulated" && !effect) || (draft?.receipt && draft.receipt !== effect?.receipt) ||
+      (state.familyClosure && state.familyClosure.evidenceId !== digest(acknowledgment ?? null))) {
+    fail("The previous receipt or closure has no matching provider evidence.");
+  }
+  return { effect, acknowledgment };
+}
+
+export function familyEveningReview(dir, day) {
+  return locked(dir, () => {
+    const state = read(dir, "replies");
+    const { effect, acknowledgment } = familyEvidence(dir, state, providerAt(dir));
+    const heading = "Evening review | " + day + " | Fictional family bill\n\n";
+    if (!effect) {
+      const path = state.drafts.parent?.source ?? new URL("../examples/whatsapp-mirror-parent.json", import.meta.url);
+      const request = evidenceAt(path, cases.parent);
+      return heading + "Open\nMom asked, “" + request.body + "”";
+    }
+    if (!acknowledgment) {
+      return heading + "Sent, awaiting confirmation\nThe approved reply and " + billName + " were sent in the simulator. Mom has yet to confirm receipt.";
+    }
+    if (state.familyClosure) return heading + "No new closures. No open family bill request.";
+    const report = heading + "Closed since your last review\nMom replied “" + acknowledgment.body +
+      "” to the April bill.\nEvidence: " + acknowledgment.chat + "/" + acknowledgment.message +
+      " in reply to " + effect.receipt;
+    // Preserve what was reported and its cursor together, including if output is interrupted.
+    state.familyClosure = { evidenceId: digest(acknowledgment), report };
+    write(dir, "replies", state);
+    return report;
+  });
 }
 
 function send(dir, state, name, c, draft, crash) {
@@ -104,6 +163,7 @@ function send(dir, state, name, c, draft, crash) {
   const grant = read(dir, "approvals")[name];
   const registry = providerAt(dir);
   const effect = registry.effects[name];
+  if (name === "parent" && state.familyClosure) familyEvidence(dir, state, registry);
   if (draft.stage === "attempting" && !effect) {
     // Under the mock's exclusive lock, this intact slot establishes no effect.
     let current;
@@ -131,14 +191,14 @@ function send(dir, state, name, c, draft, crash) {
     draft.stage = "attempting";
     write(dir, "replies", state);
     if (crash === "--crash-before-provider") fail("Simulated interruption before mock provider commit. Repeat send to reconcile.");
-    registry.effects[name] = { receipt, payload: grant.payload };
+    registry.effects[name] = { receipt, payload: grant.payload, sequence: 1 };
     write(dir, "mock-provider", registry);
     if (crash === "--crash-after-provider") fail("Simulated interruption after mock provider commit. Repeat send to reconcile.");
   }
   draft.receipt = receipt;
   draft.stage = "simulated";
   write(dir, "replies", state);
-  return { stage: draft.stage, receipt, reconciled: Boolean(effect), requestStatus: "open",
+  return { stage: draft.stage, receipt, reconciled: Boolean(effect), requestStatus: name === "parent" && registry.parentAcknowledgment ? "closed" : "open",
     mockSends: Object.values(registry.effects).filter(Boolean).length };
 }
 
@@ -176,7 +236,8 @@ export function replyCommand(command, dir, name, args = []) {
     switch (command) {
       case "preview":
         if (args.length) fail("preview takes no additional arguments.");
-        return view(dir, c, draft);
+        return { ...view(dir, c, draft), requestStatus: name === "parent" &&
+          familyEvidence(dir, state, providerAt(dir)).acknowledgment ? "closed" : "open" };
       case "edit": {
         requireEditable(draft);
         const [field, value] = args;
@@ -219,11 +280,25 @@ export function replyCommand(command, dir, name, args = []) {
       case "send":
         if (args.length && !(args.length === 1 && ["--crash-before-provider", "--crash-after-provider"].includes(args[0]))) fail("Unknown simulated send option.");
         return send(dir, state, name, c, draft, args[0]);
+      case "receive": {
+        if (name !== "parent" || args.length !== 1) fail("receive takes the parent case and a fictional acknowledgment file.");
+        const registry = providerAt(dir);
+        const { effect, acknowledgment } = familyEvidence(dir, state, registry);
+        const event = matchAcknowledgment(JSON.parse(readFileSync(args[0], "utf8")), effect);
+        if (acknowledgment && digest(acknowledgment) !== digest(event)) fail("A different acknowledgment is already recorded.");
+        if (!acknowledgment) {
+          registry.parentAcknowledgment = event;
+          write(dir, "mock-provider", registry);
+        }
+        return { requestStatus: "closed", incoming: event.body, inReplyTo: event.inReplyTo };
+      }
       case "status": {
         if (args.length) fail("status takes no additional arguments.");
-        const effect = providerAt(dir).effects[name];
+        const registry = providerAt(dir);
+        const effect = registry.effects[name];
         if (draft.receipt && draft.receipt !== effect?.receipt) fail("Worker receipt differs from mock provider evidence.");
-        return { stage: draft.stage, requestStatus: "open", mockProviderReceipt: effect?.receipt ?? null,
+        const closed = name === "parent" && familyEvidence(dir, state, registry).acknowledgment;
+        return { stage: draft.stage, requestStatus: closed ? "closed" : "open", mockProviderReceipt: effect?.receipt ?? null,
           savedReceipt: draft.receipt ?? null };
       }
       default: fail("Unknown reply command.");

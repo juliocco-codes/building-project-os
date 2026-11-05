@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
-import { replyCommand } from "../src/whatsapp-reply.mjs";
+import { familyEveningReview, replyCommand } from "../src/whatsapp-reply.mjs";
 
 const file = name => fileURLToPath(new URL("../examples/" + name, import.meta.url));
 function exercise(t) {
@@ -160,4 +160,73 @@ test("the published CLI commands work across fresh processes with no external se
   const sent = invoke("send", "parent");
   assert.equal(invoke("send", "parent").mockSends, 1);
   assert.equal(invoke("status", "parent").mockProviderReceipt, sent.receipt);
+});
+
+test("the family review reports open, sent, then one evidence-backed closure across fresh processes", t => {
+  const { dir, parent, fixture } = exercise(t);
+  const cli = fileURLToPath(new URL("../scripts/mac-evening-review.mjs", import.meta.url));
+  const review = () => execFileSync(process.execPath, [cli, "review", dir], { encoding: "utf8" });
+  const incoming = file("parent-bill-acknowledgment.json");
+  assert.match(review(), /Open\nMom asked,.*April electricity bill/);
+  const preview = parent("draft", fixture);
+  assert.throws(() => parent("receive", incoming), /later fictional/);
+  parent("approve", preview.previewId, "--mock-send");
+  assert.match(review(), /Open\n/);
+  assert.throws(() => parent("send", "--crash-after-provider"), /interruption/);
+  assert.match(review(), /Sent, awaiting confirmation/);
+  assert.equal(parent("send").reconciled, true);
+  assert.equal(parent("receive", incoming).requestStatus, "closed");
+  assert.equal(parent("receive", incoming).requestStatus, "closed");
+  assert.equal(parent("preview").requestStatus, "closed");
+  assert.equal(parent("status").requestStatus, "closed");
+  assert.equal(parent("send").requestStatus, "closed");
+  const closed = review();
+  assert.match(closed, /Closed since your last review\nMom replied “Got it, thanks”/);
+  assert.ok(closed.includes(parent("status").mockProviderReceipt));
+  assert.match(closed, /family-parent\/parent-april-received/);
+  assert.equal(parent("receive", incoming).requestStatus, "closed");
+  assert.match(review(), /No new closures/);
+  assert.ok(!review().includes("Closed since your last review"));
+  const retained = JSON.parse(readFileSync(join(dir, "replies.json"))).familyClosure;
+  assert.equal(retained.report, closed.trimEnd());
+});
+
+test("unrelated acknowledgments cannot close a bill request or consume its review cursor", t => {
+  const { dir, parent, fixture } = exercise(t);
+  const preview = parent("draft", fixture);
+  parent("approve", preview.previewId, "--mock-send");
+  const { receipt } = parent("send");
+  const template = JSON.parse(readFileSync(file("parent-bill-acknowledgment.json")));
+  const incoming = join(dir, "incoming.json");
+  for (const patch of [
+    { direction: "outgoing" }, { sender: "other" }, { chat: "studio-bookkeeper" }, { chatIdentity: "other" },
+    { inReplyTo: "other-receipt" }, { kind: "ordinary-message" }, { source: "outgoing" },
+    { sequence: 1 }, { sequence: 0 }, { sequence: "2" }, { message: "different" }, { body: "Thanks for the update" },
+  ]) {
+    writeFileSync(incoming, JSON.stringify({ ...template, ...patch }));
+    assert.throws(() => parent("receive", incoming), /exact bill send/);
+    assert.match(familyEveningReview(dir, "2032-05-03"), /Sent, awaiting confirmation/);
+  }
+  assert.equal(receipt, template.inReplyTo);
+  assert.equal(parent("status").requestStatus, "open");
+});
+
+test("only an explicitly linked acknowledgment closes an edited send; missing evidence fails visibly", t => {
+  const { dir, parent, fixture } = exercise(t);
+  parent("draft", fixture);
+  const preview = parent("edit", "text", "Here is your April bill, Mom.");
+  parent("approve", preview.previewId, "--mock-send");
+  const { receipt } = parent("send");
+  const original = file("parent-bill-acknowledgment.json");
+  assert.throws(() => parent("receive", original), /exact bill send/);
+  const incoming = join(dir, "edited-reply-ack.json");
+  writeFileSync(incoming, JSON.stringify({ ...JSON.parse(readFileSync(original)), inReplyTo: receipt }));
+  parent("receive", incoming);
+  assert.match(familyEveningReview(dir, "2032-05-03"), /Closed since your last review/);
+  const provider = join(dir, "mock-provider.json");
+  const registry = JSON.parse(readFileSync(provider));
+  delete registry.parentAcknowledgment;
+  writeFileSync(provider, JSON.stringify(registry));
+  assert.throws(() => familyEveningReview(dir, "2032-05-04"), /no matching provider evidence/);
+  assert.throws(() => parent("status"), /no matching provider evidence/);
 });

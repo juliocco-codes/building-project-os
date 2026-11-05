@@ -13,6 +13,8 @@ node src/whatsapp-reply-cli.mjs init state/replies
 node src/whatsapp-reply-cli.mjs draft state/replies parent examples/whatsapp-mirror-parent.json
 ```
 
+For the complete family case, including the incoming acknowledgment and the next two reviews, follow the [five-minute exercise](../README.md#try-the-family-bill-in-five-minutes).
+
 Find the WhatsApp thread alongside the other evening items. The draft command takes the same evidence that supplied the review. Follow the [reply exercise](whatsapp-reply-demo.md) to inspect the bill, edit or cancel the draft, or approve one simulated send. The bookkeeper example uses a separate conversation and approval.
 
 The parent’s preview starts “Here you go, Mom!” The bookkeeper’s preview leads with the attached bill and includes its filing reference. Both use the same sample bill. Neither case establishes that the bill was paid. In the offline demo these are retained example drafts. To generate your own, give your agent the skill and your private version of the [voice guide](../workspace/VOICE.example.md).
