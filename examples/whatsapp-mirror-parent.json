@@ -1,0 +1,57 @@
+{
+  "mode": "fictional",
+  "asOf": "2032-05-03T19:00:00Z",
+  "chatRef": "family-parent",
+  "chatJid": "12025550101@s.whatsapp.net",
+  "doctor": {
+    "success": true,
+    "data": {
+      "authenticated": true,
+      "session_revoked": false,
+      "store": {
+        "last_sync_at": "2032-05-03T18:55:00Z"
+      }
+    },
+    "error": null
+  },
+  "chat": {
+    "success": true,
+    "data": {
+      "jid": "12025550101@s.whatsapp.net"
+    },
+    "error": null
+  },
+  "list": {
+    "success": true,
+    "data": {
+      "messages": [
+        {
+          "ChatJID": "12025550101@s.whatsapp.net",
+          "MsgID": "parent-april-copy",
+          "Timestamp": "2032-05-03T17:42:00Z",
+          "FromMe": false,
+          "Text": "Could you send me a copy of the April electricity bill?",
+          "IsForwarded": false,
+          "ForwardingScore": 0,
+          "Revoked": false,
+          "DeletedForMe": false,
+          "Edited": false,
+          "MediaType": "",
+          "ReactionToID": "",
+          "MediaCaption": ""
+        }
+      ],
+      "fts": true,
+      "page": {
+        "has_more": false,
+        "next_cursor": null
+      },
+      "source": {
+        "last_sync_at": "2032-05-03T18:55:00Z",
+        "scope": "local_archive"
+      }
+    },
+    "error": null
+  },
+  "openRequestRef": "parent-april-copy"
+}

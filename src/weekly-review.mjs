@@ -1,7 +1,7 @@
-import { createHash, randomUUID } from "node:crypto";
-import { mkdirSync, readFileSync, writeFileSync, renameSync, rmdirSync,
-  openSync, closeSync, fsyncSync } from "node:fs";
-import { join } from "node:path";
+import { randomUUID } from "node:crypto";
+import { mkdirSync } from "node:fs";
+import { digest, locked, read, write } from "./local-json.mjs";
+export { digest } from "./local-json.mjs";
 
 // All identities and inputs in this module are fictional. No network or model calls.
 const TASK = "fictional-field-guide-weekly-review";
@@ -9,33 +9,8 @@ const DESTINATION = "mock-editor-inbox";
 const MAX_AGE = 24 * 60 * 60 * 1000;
 const CONTRACT = { task: TASK, version: 1, allowed: ["read-fixtures", "draft"],
   reviewRequired: ["choose-map", "mock-delivery"], destination: DESTINATION };
-export const digest = value => createHash("sha256").update(JSON.stringify(value)).digest("hex");
 const CONTRACT_HASH = digest(CONTRACT);
 const fail = message => { throw new Error(message); };
-const read = (dir, name) => JSON.parse(readFileSync(join(dir, `${name}.json`), "utf8"));
-
-// Atomic replacement on a local filesystem; this is not a distributed transaction.
-function write(dir, name, value) {
-  const target = join(dir, `${name}.json`);
-  const temporary = `${target}.${randomUUID()}.tmp`;
-  const fd = openSync(temporary, "wx", 0o600);
-  try { writeFileSync(fd, JSON.stringify(value, null, 2) + "\n"); fsyncSync(fd); }
-  finally { closeSync(fd); }
-  renameSync(temporary, target);
-  const directory = openSync(dir, "r");
-  try { fsyncSync(directory); } finally { closeSync(directory); }
-}
-
-function locked(dir, action) {
-  const lock = join(dir, ".lock");
-  try { mkdirSync(lock); }
-  catch (error) {
-    if (error.code === "EEXIST") fail("Workspace locked. Verify the owner has exited before removing .lock; see the recovery guide.");
-    throw error;
-  }
-  try { return action(); } finally { rmdirSync(lock); }
-}
-
 function sources(dir) {
   const input = read(dir, "sources");
   if (!input || typeof input !== "object" || Array.isArray(input)

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>org.building-project-os.whatsapp-refresh</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>REPLACE_WITH_ABSOLUTE_WACLI_PATH</string>
+    <string>--store</string><string>REPLACE_WITH_ABSOLUTE_STORE_PATH</string>
+    <string>sync</string><string>--once</string>
+    <string>--idle-exit</string><string>30s</string>
+    <string>--max-reconnect</string><string>1m</string>
+    <string>--presence-mode</string><string>quiet</string>
+    <string>--max-db-size</string><string>256MB</string>
+    <string>--max-messages</string><string>20000</string>
+  </array>
+  <key>StartCalendarInterval</key>
+  <dict><key>Hour</key><integer>18</integer><key>Minute</key><integer>55</integer></dict>
+</dict>
+</plist>
