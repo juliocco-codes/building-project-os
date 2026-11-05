@@ -5,9 +5,11 @@ Its JavaScript implements task validation, readiness and handoff checks, stable
 dispatch keys, contract fingerprints, a human review handoff, publication
 closeout planning and audit, and pure decision helpers for publication recovery,
 leases, bounded health, attention, and integration eligibility. These helpers
-perform no external effects. It has no live scheduler, database, task-client
+perform no external effects. The [Mac evening review](docs/mac-evening-review.md)
+uses a per-user calendar LaunchAgent to run one local reader and write one
+report per local date. A production dispatcher, database, task-client
 adapter, notification service, credential adapter, delivery provider,
-independent-review runner, or source integrator. The separate
+independent-review runner, and source integrator remain deployment work. The separate
 [local weekly-review starter](src/weekly-review.mjs) adds JSON checkpoints,
 explicit mock approvals, and a durable mock inbox. It performs local file writes
 only and is not one of those production adapters.
@@ -240,9 +242,9 @@ A source fix can be reviewed while deployment remains pending. A successful
 deployment can still await behavioral verification. Keep these states visible,
 and scope each verification to the version and path actually observed. A later
 change does not inherit that evidence automatically; preserve earlier results
-as history and identify the new checks needed. The tests in this repository prove
-deterministic helper behavior and the local mock workflow, not a deployed
-scheduler or real delivery adapter.
+as history and identify the new checks needed. The unit tests cover deterministic helper behavior and the local workflows.
+The hosted Mac smoke job separately exercises an installed schedule on its
+disposable runner. A personal installation needs its own observed report.
 
 ### Trace running code to source
 
