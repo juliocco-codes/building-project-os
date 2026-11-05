@@ -16,6 +16,8 @@ npm run evening -- preview 19:00
 
 When the preview looks right, run `npm run evening -- install 19:00` (or choose your own local time). The walkthrough shows where to find the report, how to check the job, how to remove it, and how to try your own read-only source. [Schedule an evening review](docs/mac-evening-review.md)
 
+Follow a fictional WhatsApp request for a bill from the evening report to an approved reply. Compare the parent and bookkeeper drafts, then try one chat from your own read-only mirror. [WhatsApp walkthrough](docs/whatsapp-evening-review.md)
+
 ## Project OS in practice
 
 | You ask | What comes back | Your next step |
@@ -46,7 +48,8 @@ your disk; it sends no message.
 | Capability | Included | Still needed for a connected system |
 | --- | --- | --- |
 | Task validation, fingerprints, dispatch and review decisions | Executable pure helpers and tests | Tracker, accepted execution grants, durable dispatch transport |
-| Scheduled evening review on macOS | Per-user LaunchAgent, one local thread file, dated reports | Readers for connected sources or an optional agent worker |
+| Scheduled evening review on macOS | Per-user LaunchAgent, local threads, optional read-only WhatsApp mirror, dated reports | User-owned sources and an optional model worker |
+| WhatsApp replies | Fictional voice skill, exact recipient, text and attachment approval, offline send simulator, Desktop procedure | A private voice guide and human authorization for each real send |
 | Weekly review, source coverage, late research | Runnable fixed fictional workflow with persistent JSON checkpoints | Authenticated sources, real pagination, freshness policy, model authoring |
 | Human decision and delivery approval | Explicit CLI command bound to exact artifact, contract, map choice, and mock destination | Authenticated human identity and grant service inaccessible to workers |
 | Crash/retry and receipt reconciliation | Local mock provider commits one effect per stable key; restart reconciles it | Provider-supported idempotency, authoritative queries, durable transactional storage |

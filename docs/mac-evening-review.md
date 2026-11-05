@@ -57,7 +57,9 @@ macOS owns the clock through a per-user `launchd` job. Terminal, Codex, and Clau
 
 ## Try your first real source
 
-Start with a private copy of one local task list you already keep. For each item, set `status` to `open` or `closed`, give it a single-line `title`, and put the next decision or evidence of closure in a single-line `note`. Preview that file before installing it as the input. Replace the example path below with your copy's path.
+To add one WhatsApp chat to the evening report, start with the fictional preview and then configure your own linked device. [WhatsApp walkthrough](whatsapp-evening-review.md)
+
+For a file source, start with a private copy of one local task list you already keep. For each item, set `status` to `open` or `closed`, give it a single-line `title`, and put the next decision or evidence of closure in a single-line `note`. Preview that file before installing it as the input. Replace the example path below with your copy's path.
 
 ```sh
 source_file="$HOME/my-review-threads.json"
@@ -72,7 +74,7 @@ temp=$(mktemp "$data/threads.XXXXXXXX")
 cp "$source_file" "$temp" && mv "$temp" "$data/threads.json" && npm run evening -- run
 ```
 
-Read today's report again. The worker only reads `threads.json`; you control when to refresh that snapshot. A later read-only adapter could export the same three fields from one source. Keep its scope limited to the selected list. Codex or Claude Code could optionally summarize that snapshot as a worker with separately configured model access. This example uses ordinary Node.js, runs offline, and sends nothing.
+Read today's report again. With the file source alone, the worker reads `threads.json`. You control when to refresh that snapshot. Keep its scope limited to the selected list. Codex or Claude Code could optionally summarize that snapshot as a worker with separately configured model access. This example uses ordinary Node.js, runs offline, and sends nothing.
 
 ## Change the time or stop
 

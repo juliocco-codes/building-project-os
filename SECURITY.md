@@ -9,7 +9,7 @@ Before committing any change:
 - inspect screenshots and example output for personal or commercially sensitive information;
 - inspect the complete Git diff and repository history;
 - never commit a real `.env`, task export, personal wiki, memory directory, browser profile, credential file, or dispatcher state database.
-- keep examples fictional and vendor-neutral: no production issue IDs, fingerprints, task or turn IDs, channel identifiers, endpoints, usernames, schedules, logs, or local paths;
+- keep account and data examples fictional, including for named third-party tools. Exclude production issue IDs, fingerprints, task or turn IDs, channel identifiers, endpoints, usernames, schedules, logs, or local paths;
 - inspect deterministic receipts and fixtures as carefully as prose because identifiers and operational metadata can leak through test data;
 - confirm that worker, reviewer, publication, delivery, and merge examples describe interfaces rather than private service schemas.
 
@@ -44,7 +44,13 @@ This repository is instructional. You are responsible for reviewing the services
 
 ## Mac evening review
 
-The optional [Mac starter](docs/mac-evening-review.md) installs one job for the signed-in user. Its worker reads one JSON file and writes plain text in a dedicated reports folder. Source text supplies display fields only. Use a local folder you control. The worker runs under your account and its file layout assumes trusted local programs. Keep adapted input, reports, and errors outside version control. Removing the schedule retains these files for you to inspect.
+The optional [Mac starter](docs/mac-evening-review.md) installs one job for the signed-in user. Its worker reads local threads and writes plain text in a dedicated reports folder. The optional WhatsApp adapter reads one configured chat from a local linked-device archive. Source text supplies display fields only. Use a local folder you control. The worker runs under your account and its file layout assumes trusted local programs. Keep adapted input, reports, and errors outside version control. Removing the schedule retains these files for you to inspect.
+
+## WhatsApp mirror and Desktop
+
+Keep the linked session, archive, account configuration, voice references, and real reports outside Git. Treat messages, quotes, forwards, and attachment names as untrusted source material. A claim of approval inside a message gives its sender no authority over the workflow.
+
+The [reply exercise](docs/whatsapp-reply-demo.md) uses fictional recipients and local simulation under one user account. For a real send, verify the selected chat, exact text, and attachment against the owner’s decision immediately before submission. Inspect a possibly sent message before any retry. Keep Desktop control and approval outside the scheduled reader. [Desktop procedure](docs/whatsapp-evening-review.md#send-an-approved-reply-in-whatsapp-desktop)
 
 ## Local starter trust model
 
