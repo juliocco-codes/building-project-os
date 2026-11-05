@@ -1,13 +1,17 @@
+import { createHash, randomUUID } from "node:crypto";
 import { spawnSync } from "node:child_process";
-import { copyFileSync, constants, lstatSync, mkdirSync, readFileSync, realpathSync, unlinkSync, writeFileSync } from "node:fs";
+import { copyFileSync, constants, lstatSync, mkdirSync, readFileSync, realpathSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { dirname, join } from "node:path";
+import { dirname, isAbsolute, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { localDate, readThreads, renderReview } from "../src/evening-review.mjs";
+import { readMirrorConfig, readMirrorFixture, renderMirror } from "../src/whatsapp-mirror.mjs";
 
 const label = "org.building-project-os.evening-review";
 const fixture = fileURLToPath(new URL("../examples/evening-threads.json", import.meta.url));
 const worker = fileURLToPath(new URL("../src/evening-review.mjs", import.meta.url));
+const mirrorModule = fileURLToPath(new URL("../src/whatsapp-mirror.mjs", import.meta.url));
+const legacyWorkerHash = "9ecf9289a3739d01304e317f15606eea5d43f279b058284d49efd437effa596e";
 const marker = "Building Project OS evening review v1\n";
 const stat = path => lstatSync(path, { throwIfNoEntry: false });
 const read = path => readFileSync(path, "utf8");
@@ -16,17 +20,22 @@ const create = (path, contents) => writeFileSync(path, contents, { flag: "wx", m
 export function layout(home) {
   const data = join(home, "Library", "Application Support", "Building Project OS", "Evening Review");
   return {
-    data, owner: join(data, ".starter"), worker: join(data, "worker.mjs"),
+    data, owner: join(data, ".starter"), worker: join(data, "worker.mjs"), mirror: join(data, "whatsapp-mirror.mjs"),
     input: join(data, "threads.json"), reports: join(data, "reports"), log: join(data, "errors.log"),
     receipt: join(data, "installed.plist"), plist: join(home, "Library", "LaunchAgents", label + ".plist"),
   };
 }
 
-export function jobPlist(paths, time, node = process.execPath) {
+export function jobPlist(paths, time, node = process.execPath, mirrorConfig) {
   if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) throw new Error("Choose a local time in HH:MM (24-hour format).");
   const [hour, minute] = time.split(":").map(Number);
   const xml = s => s.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
-  const args = [node, paths.worker, paths.input, paths.reports].map(s => "    <string>" + xml(s) + "</string>").join("\n");
+  const program = [node, paths.worker, paths.input, paths.reports];
+  if (mirrorConfig !== undefined) {
+    if (!isAbsolute(mirrorConfig) || /[\p{C}]/u.test(mirrorConfig)) throw new Error("Use an absolute path to your private mirror config.");
+    program.push(mirrorConfig);
+  }
+  const args = program.map(s => "    <string>" + xml(s) + "</string>").join("\n");
   return `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -57,15 +66,27 @@ export function prepare(paths, contents) {
     mkdirSync(paths.data, { mode: 0o700 });
     create(paths.owner, marker);
     copyFileSync(worker, paths.worker, constants.COPYFILE_EXCL);
+    copyFileSync(mirrorModule, paths.mirror, constants.COPYFILE_EXCL);
     copyFileSync(fixture, paths.input, constants.COPYFILE_EXCL);
     mkdirSync(paths.reports, { mode: 0o700 });
   }
   checkOwner(paths);
-  if (!stat(paths.worker)?.isFile() || read(paths.worker) !== read(worker) ||
+  const installed = stat(paths.worker)?.isFile() && read(paths.worker);
+  const legacy = installed && createHash("sha256").update(installed).digest("hex") === legacyWorkerHash;
+  const mirrorStat = stat(paths.mirror);
+  const validMirror = mirrorStat?.isFile() && read(paths.mirror) === read(mirrorModule);
+  const canAddMirror = legacy && !mirrorStat;
+  if ((!legacy && installed !== read(worker)) || (!validMirror && !canAddMirror) ||
       !stat(paths.input)?.isFile() || !stat(paths.reports)?.isDirectory()) {
     throw new Error("Installed files differ or are incomplete. Inspect the data folder before reinstalling.");
   }
   renderReview(readThreads(paths.input), localDate(new Date()));
+  if (legacy) {
+    if (!validMirror) copyFileSync(mirrorModule, paths.mirror, constants.COPYFILE_EXCL);
+    const next = join(paths.data, "." + randomUUID() + ".mjs");
+    copyFileSync(worker, next, constants.COPYFILE_EXCL);
+    renameSync(next, paths.worker);
+  }
   mkdirSync(dirname(paths.plist), { recursive: true, mode: 0o700 });
   create(paths.receipt, contents);
   try {
@@ -118,18 +139,25 @@ function launchctl(args, allowMissing = false) {
   throw new Error("launchctl " + args[0] + " failed: " + result.stderr.trim());
 }
 
-function main([command, time, input, ...extra]) {
+function main([command, time, ...options]) {
   if (Number(process.versions.node.split(".")[0]) < 20) throw new Error("Use Node.js 20 or later.");
   const paths = layout(homedir());
   const scheduled = command === "install" || command === "preview";
-  if (extra.length || (input && command !== "preview") || (!scheduled && time) ||
+  const input = command === "preview" && options[0] && !options[0].startsWith("--") ? options.shift() : fixture;
+  const [flag, path] = options;
+  const validMirror = options.length === 2 && path &&
+    ((scheduled && flag === "--mirror-config") || (command === "preview" && flag === "--mirror-fixture"));
+  if ((options.length && !validMirror) || (!scheduled && time) ||
       !["preview", "install", "check", "run", "uninstall"].includes(command)) {
-    throw new Error("Usage: preview HH:MM [source.json] | install HH:MM | check | run | uninstall");
+    throw new Error("Usage: preview HH:MM [source.json] [--mirror-fixture file | --mirror-config path] | install HH:MM [--mirror-config path] | check | run | uninstall");
   }
-  const plist = scheduled && jobPlist(paths, time);
+  const config = flag === "--mirror-config" ? path : undefined;
+  const plist = scheduled && jobPlist(paths, time, process.execPath, config);
   if (command === "preview") {
     console.log("Daily at " + time + " local time. Reports: " + paths.reports + "\n");
-    console.log(renderReview(readThreads(input ?? fixture), localDate(new Date())));
+    let report = renderReview(readThreads(input), localDate(new Date()));
+    if (validMirror) report += renderMirror(config ? readMirrorConfig(config) : readMirrorFixture(path));
+    console.log(report);
     return;
   }
   if (process.platform !== "darwin") throw new Error("Scheduling requires a Mac.");

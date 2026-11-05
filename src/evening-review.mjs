@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { readFileSync, realpathSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
+import { readMirrorConfig, renderMirror } from "./whatsapp-mirror.mjs";
 
 export function localDate(date) {
   const pad = n => String(n).padStart(2, "0");
@@ -38,9 +39,9 @@ export function readThreads(path) {
   }
 }
 
-export function writeReview(input, reports, now = new Date()) {
+export function writeReview(input, reports, now = new Date(), mirrorConfig) {
   const day = localDate(now);
-  const report = renderReview(readThreads(input), day);
+  const report = renderReview(readThreads(input), day) + (mirrorConfig ? renderMirror(readMirrorConfig(mirrorConfig, now)) : "");
   const destination = join(reports, day + ".txt");
   const temp = join(reports, "." + randomUUID() + ".tmp");
   writeFileSync(temp, report, { flag: "wx", mode: 0o600 });
@@ -55,7 +56,7 @@ export function writeReview(input, reports, now = new Date()) {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href) {
   try {
-    writeReview(process.argv[2], process.argv[3]);
+    writeReview(process.argv[2], process.argv[3], new Date(), process.argv[4]);
   } catch (error) {
     console.error(new Date().toISOString() + " Evening review failed: " + error.message);
     process.exitCode = 1;
