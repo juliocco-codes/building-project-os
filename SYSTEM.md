@@ -7,7 +7,7 @@ closeout planning and audit, and pure decision helpers for publication recovery,
 leases, bounded health, attention, and integration eligibility. These helpers
 perform no external effects. The [Mac evening review](docs/mac-evening-review.md)
 uses a per-user calendar LaunchAgent to run one local reader and write one
-report per local date. The optional [WhatsApp source](docs/whatsapp-evening-review.md) adds bounded evidence from one chat. A separate reply exercise binds approval to the selected recipient, exact text and attachment bytes, and records a simulated result locally. The guide covers a separately authorized send in WhatsApp Desktop. A production dispatcher, database, task-client
+report per local date. The optional [WhatsApp source](docs/whatsapp-evening-review.md) adds bounded evidence from one chat. A separate reply exercise binds approval to the selected recipient, exact text and attachment bytes, and records a simulated result locally. The fictional family review distinguishes a mock send from a later acknowledgment of that exact bill and records when it first reports the closure. The guide covers a separately authorized send in WhatsApp Desktop. A production dispatcher, database, task-client
 adapter, notification service, credential adapter, delivery provider,
 independent-review runner, and source integrator remain deployment work. The separate
 [local weekly-review starter](src/weekly-review.mjs) adds JSON checkpoints,

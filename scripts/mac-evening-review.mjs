@@ -6,6 +6,7 @@ import { dirname, isAbsolute, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { localDate, readThreads, renderReview } from "../src/evening-review.mjs";
 import { readMirrorConfig, readMirrorFixture, renderMirror } from "../src/whatsapp-mirror.mjs";
+import { familyEveningReview } from "../src/whatsapp-reply.mjs";
 
 const label = "org.building-project-os.evening-review";
 const fixture = fileURLToPath(new URL("../examples/evening-threads.json", import.meta.url));
@@ -139,8 +140,14 @@ function launchctl(args, allowMissing = false) {
   throw new Error("launchctl " + args[0] + " failed: " + result.stderr.trim());
 }
 
-function main([command, time, ...options]) {
+function main([command, argument, ...options]) {
   if (Number(process.versions.node.split(".")[0]) < 20) throw new Error("Use Node.js 20 or later.");
+  if (command === "review") {
+    if (!argument || options.length) throw new Error("Usage: review REPLY_STATE_DIRECTORY");
+    console.log(familyEveningReview(argument, localDate(new Date())));
+    return;
+  }
+  const time = argument;
   const paths = layout(homedir());
   const scheduled = command === "install" || command === "preview";
   const input = command === "preview" && options[0] && !options[0].startsWith("--") ? options.shift() : fixture;
@@ -149,7 +156,7 @@ function main([command, time, ...options]) {
     ((scheduled && flag === "--mirror-config") || (command === "preview" && flag === "--mirror-fixture"));
   if ((options.length && !validMirror) || (!scheduled && time) ||
       !["preview", "install", "check", "run", "uninstall"].includes(command)) {
-    throw new Error("Usage: preview HH:MM [source.json] [--mirror-fixture file | --mirror-config path] | install HH:MM [--mirror-config path] | check | run | uninstall");
+    throw new Error("Usage: review REPLY_STATE_DIRECTORY | preview HH:MM [source.json] [--mirror-fixture file | --mirror-config path] | install HH:MM [--mirror-config path] | check | run | uninstall");
   }
   const config = flag === "--mirror-config" ? path : undefined;
   const plist = scheduled && jobPlist(paths, time, process.execPath, config);

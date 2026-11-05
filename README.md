@@ -6,6 +6,35 @@ The aim is to get more from personal AI without becoming the routing layer betwe
 
 The initial build is described in [Putting life on autopilot](https://juliocothon.com/essays/putting-life-on-autopilot). This public reference shares reusable patterns from its continued development.
 
+## Try the family bill in five minutes
+
+Mom asks for the April electricity bill. Run an evening review, check the exact reply and attachment, then see what changes when she confirms receipt. The whole exercise runs locally with fictional messages. You need Node.js 20 or later and a clone of this repository. Start a fresh exercise from the repository folder.
+
+```sh
+mkdir -p state
+node src/whatsapp-reply-cli.mjs init state/family-bill
+npm run evening -- review state/family-bill
+node src/whatsapp-reply-cli.mjs draft state/family-bill parent examples/whatsapp-mirror-parent.json
+```
+
+The review shows **Open** and Mom's question. The draft shows the exact words, chat, and contents of `april-electricity-bill.txt`. Read them. If you approve that reply, replace `PASTE_PREVIEW_ID` below with the `previewId` you just reviewed.
+
+```sh
+node src/whatsapp-reply-cli.mjs approve state/family-bill parent PASTE_PREVIEW_ID --mock-send
+node src/whatsapp-reply-cli.mjs send state/family-bill parent
+npm run evening -- review state/family-bill
+```
+
+The review now says **Sent, awaiting confirmation**. The receipt proves the simulator recorded your approved send. To see the request close, add Mom's separate fictional incoming reply, “Got it, thanks,” and run the same review twice.
+
+```sh
+node src/whatsapp-reply-cli.mjs receive state/family-bill parent examples/parent-bill-acknowledgment.json
+npm run evening -- review state/family-bill
+npm run evening -- review state/family-bill
+```
+
+The first review shows **Closed since your last review**, with Mom's message and the outgoing receipt it answers. The next shows **No new closures**. This closes the request for a copy of the bill. To try edits, a different recipient, or a simulated crash, use the [reply walkthrough](docs/whatsapp-reply-demo.md).
+
 ## Schedule your first task on a Mac
 
 Pick a time, close Terminal, and come back to a dated text file listing open and closed threads. The Mac keeps the schedule. Start with two fictional threads and Node.js 20 or later. Preview the report from the repository folder.

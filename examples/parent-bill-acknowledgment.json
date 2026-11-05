@@ -1,0 +1,12 @@
+{
+  "source": "fictional-incoming",
+  "kind": "attachment-received",
+  "chat": "family-parent",
+  "chatIdentity": "12025550101@s.whatsapp.net",
+  "sender": "12025550101@s.whatsapp.net",
+  "direction": "incoming",
+  "message": "parent-april-received",
+  "sequence": 2,
+  "inReplyTo": "mock-ef6445bfac7bb73f2ac9a39fc94a80515a1b42641d3d1c8bda46ffb684208cef",
+  "body": "Got it, thanks"
+}
