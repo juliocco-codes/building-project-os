@@ -1,0 +1,6 @@
+Fictional electricity statement for this offline exercise
+Issuer: Paper Finch Energy
+Billing period: April
+Reference: PF-APR
+Amount billed: $48.00
+Due date: May 10
